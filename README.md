@@ -32,18 +32,25 @@ Totals always cover the whole row.
   `--split` and `--short`. They stack like ship date flags:
   `--split --short` is any row with a short line.
 - Names match any part of any line on the row, ignoring case: `--channel`,
-  `--customer`, `--shipto`. `--channel` also takes short names (`CHANNELS`):
-  `thd` is `HOME DEPOT-OK` and `fsd` is `DISTRIBUTORS&FIELD SALES-OK`. Since
-  they expand to the whole name, `--channel thd` leaves out HOME DEPOT.COM-OK,
-  which `--channel depot` still picks up.
+  `--customer`, `--shipto`. Give more than one as a comma list or by
+  repeating the option (`--channel "lowes,menards"`); a row matches any of
+  them. Quote the list: the `ovh` command goes through a `.cmd` shim, where
+  an unquoted comma becomes a space, and a name filter takes spaces as part of
+  one name (`--customer "ace hdw"`). Repeating the option needs no quotes.
+  `--channel` also takes short names (`CHANNELS`): `thd` is `HOME DEPOT-OK`
+  and `fsd` is `DISTRIBUTORS&FIELD SALES-OK`. Since they expand to the whole
+  name, `--channel thd` leaves out HOME DEPOT.COM-OK, which `--channel depot`
+  still picks up.
 - `--144` keeps only rows holding a 144" item (the ones the Items column tags).
 - `--dollars` keeps the biggest rows that together make up 80% of the dollars
   (`topDollars`). It compares rows against each other, so it runs last, on
   whatever the other filters picked.
-- `--status` matches the row's status exactly, ignoring case.
+- `--status` matches the row's status exactly, ignoring case. It stacks too:
+  `--status ready,picked`, spaces or commas, like `--mode`.
 - `--mode` is `TL`, `LTL` or `Parcel` (ignoring case), from Shipping Category
   (TRUCK, LTL, PARCEL). A row matches if any of its lines has that mode.
-  Repeat it to stack: `--mode tl --mode ltl`. Lines with no category have no mode.
+  Stack it like the rest: `--mode tl,ltl`, quoted or not - modes are single
+  words, so spaces separate them too. Lines with no category have no mode.
 
 Different kinds of filters must all match: `--today --status holds` is rows
 due today that are also Holds.
@@ -54,14 +61,17 @@ line counts cover only lines that match every filter. Its order and trip
 counts are the rows `ovh orders` would show with the same filters.
 
 Options are always named (`--name value`, handled by `util.parseArgs`), never
-guessed from what a bare value looks like; the one bare value is the order
-number after `ovh order`. Unknown names are errors. Each command lists its
-options in `COMMANDS`; add name filters to `FILTERS`, ship date flags to
-`DATE_FILTERS`, allocation flags to `ALLOCATION_FILTERS`, other filters to `rowMatches` (and the `USAGE` line).
+guessed from what a bare value looks like, so a second value needs its own
+comma or option name (`--mode ltl,parcel`, not `--mode ltl parcel`); the one
+bare value is the order number after `ovh order`. Unknown names are errors.
+Each command lists its options in `COMMANDS`; add name filters to `FILTERS`,
+ship date flags to `DATE_FILTERS`, allocation flags to `ALLOCATION_FILTERS`,
+other filters to `rowMatches` (and the `USAGE` line).
 
 **Data:** an "open orders" CSV export from the office system. With no path
 given, the newest `openorders*.csv` in Downloads is used. It holds real customer
-data, so never copy it into this folder or commit it.
+data, so never copy it into this folder or commit it. `.gitignore` ignores
+every `*.csv` here, exports and `--csv` reports alike.
 
 **All grouping and computing happens once, at load.** `loadOrders` returns
 `{ lines, orders, trips, items }`: the lines, each with its allocation; each

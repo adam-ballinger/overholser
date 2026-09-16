@@ -469,20 +469,27 @@ const DATE_FILTERS = {
 // Allocation filters: flag -> the row's allocation it takes.
 const ALLOCATION_FILTERS = { alloc: 'alloc', split: 'split', short: 'short' };
 
+// A filter's values. Repeating the option and comma lists both stack: --mode tl --mode ltl is --mode tl,ltl.
+const list = (v, separator = ',') => (Array.isArray(v) ? v : v ? [v] : [])
+  .flatMap(one => one.split(separator)).map(one => one.trim()).filter(Boolean);
+// The same for filters whose values are single words (--mode, --status): the ovh shim turns an unquoted
+// "ltl,parcel" into the one argument "ltl parcel", so spaces separate those values too.
+const words = v => list(v, /[, 	]+/);
+
 // The Ship Date Categories the date flags given take, e.g. { today: true, tomorrow: true } -> ['Today', 'Tomorrow'].
 const dateCategories = filters => Object.keys(DATE_FILTERS).filter(flag => filters[flag]).flatMap(flag => DATE_FILTERS[flag]);
 // True if text contains part, ignoring case.
 const contains = (text, part) => text.toUpperCase().includes(part.toUpperCase());
 // What a name filter looks for, with --channel short names expanded: 'thd' -> 'HOME DEPOT-OK'.
-const filterText = (name, filters) =>
-  name === 'channel' && filters.channel ? CHANNELS[filters.channel.toLowerCase()] ?? filters.channel : filters[name];
+const filterValues = (name, filters) => list(filters[name])
+  .map(want => name === 'channel' ? CHANNELS[want.toLowerCase()] ?? want : want);
 
 // True if one line matches the name filters and ship date flags given, e.g. { channel: 'depot', today: true }.
 function lineMatches(line, filters) {
   const categories = dateCategories(filters);
   return FILTERS.every(([name, key]) => {
-    const want = filterText(name, filters);
-    return !want || contains(line[key], want);
+    const wants = filterValues(name, filters);
+    return !wants.length || wants.some(want => contains(line[key], want));
   }) && (!categories.length || categories.includes(line.shipDateCategory));
 }
 
@@ -494,20 +501,21 @@ function lineMatches(line, filters) {
 function rowMatches(row, filters) {
   const categories = dateCategories(filters);
   const allocations = Object.keys(ALLOCATION_FILTERS).filter(flag => filters[flag]).map(flag => ALLOCATION_FILTERS[flag]);
+  const statuses = words(filters.status), modes = words(filters.mode);
   return FILTERS.every(([name, key]) => {
-    const want = filterText(name, filters);
-    return !want || row.lines.some(l => contains(l[key], want));
+    const wants = filterValues(name, filters);
+    return !wants.length || row.lines.some(l => wants.some(want => contains(l[key], want)));
   })
-    && (!filters.status || row.status.toUpperCase() === filters.status.toUpperCase())
+    && (!statuses.length || statuses.some(want => want.toUpperCase() === row.status.toUpperCase()))
     && (!categories.length || categories.some(c => row.shipDateCategories.has(c)))
     && (!allocations.length || allocations.includes(row.allocation))
     && (!filters['144'] || row.has144)
-    && (!filters.mode?.length || [...row.modes].some(m => filters.mode.some(want => want.toUpperCase() === m.toUpperCase())));
+    && (!modes.length || [...row.modes].some(m => modes.some(want => want.toUpperCase() === m.toUpperCase())));
 }
 
 module.exports = { loadOrders, rowMatches, topDollars, ordersPage, orderPage, shortagesPage, shortageItems, latePage, lateChannels, toCsv };
 
-const USAGE = `Usage: ovh orders [--due] [--late] [--9plus] [--4to8] [--1to3] [--today] [--tomorrow] [--alloc] [--split] [--short] [--144] [--dollars] [--status holds] [--mode tl] [--channel depot] [--customer "ace hdw"] [--shipto morrow] [--file file.csv] [--csv out.csv]
+const USAGE = `Usage: ovh orders [--due] [--late] [--9plus] [--4to8] [--1to3] [--today] [--tomorrow] [--alloc] [--split] [--short] [--144] [--dollars] [--status holds] [--mode tl,ltl] [--channel "lowes,menards"] [--customer "ace hdw"] [--shipto morrow] [--file file.csv] [--csv out.csv]
        ovh order 54013306 [--file file.csv] [--csv out.csv]
        ovh shortages [--due] [--late] [--today] [--tomorrow] [--channel depot] [--file file.csv] [--csv out.csv]
        ovh late [--file file.csv] [--csv out.csv]`;
@@ -518,8 +526,8 @@ const FILES = { file: { type: 'string' }, csv: { type: 'string' } };
 // The options each command accepts. Anything else is an error.
 const COMMANDS = {
   orders: {
-    ...Object.fromEntries(FILTERS.map(([name]) => [name, { type: 'string' }])),
-    status: { type: 'string' },
+    ...Object.fromEntries(FILTERS.map(([name]) => [name, { type: 'string', multiple: true }])),
+    status: { type: 'string', multiple: true },
     mode: { type: 'string', multiple: true },
     144: { type: 'boolean' }, // rows with a 144" item, the ones the report tags
     dollars: { type: 'boolean' }, // just the rows making up the top 80% of dollars
@@ -529,7 +537,7 @@ const COMMANDS = {
   order: { ...FILES },
   shortages: {
     ...Object.fromEntries(['due', 'late', 'today', 'tomorrow'].map(flag => [flag, { type: 'boolean' }])),
-    channel: { type: 'string' },
+    channel: { type: 'string', multiple: true },
     ...FILES,
   },
   late: { ...FILES },
@@ -544,7 +552,7 @@ if (require.main === module) {
     // Only "order" takes a bare value: the order number.
     ({ values: opts, positionals } = parseArgs({ args, options: COMMANDS[command], allowPositionals: command === 'order' }));
     if (command === 'order' && positionals.length !== 1) throw new Error('Give exactly one order number');
-    for (const mode of opts.mode ?? []) {
+    for (const mode of words(opts.mode)) {
       if (!Object.values(MODES).some(m => m.toUpperCase() === mode.toUpperCase())) throw new Error(`Unknown mode '${mode}': use TL, LTL or Parcel`);
     }
   } catch (e) {

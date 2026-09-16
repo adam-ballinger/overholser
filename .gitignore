@@ -1,0 +1,2 @@
+# Exports and report CSVs hold real customer data. Never commit them.
+*.csv
