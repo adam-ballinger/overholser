@@ -1,7 +1,8 @@
+#!/usr/bin/env node
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { styleText } = require('util');
+const { parseArgs, styleText } = require('util');
 
 // Splits CSV text into rows of fields. Handles "quoted, fields" and "" escapes.
 function parseCsv(text) {
@@ -45,23 +46,7 @@ function convert(col, v) {
 const toKey = col => col.replace(/\./g, '').split(' ')
   .map((w, i) => i ? w[0].toUpperCase() + w.slice(1) : w.toLowerCase()).join('');
 
-// Returns one object per order line with just the COLUMNS above, as camelCase properties.
-function loadOrders(file) {
-  const [header, ...rows] = parseCsv(fs.readFileSync(file, 'utf8'));
-  const idx = COLUMNS.map(c => {
-    if (!header.includes(c)) throw new Error(`CSV is missing column: ${c}`);
-    return header.indexOf(c);
-  });
-  return rows.map(r => Object.fromEntries(COLUMNS.map((c, i) => [toKey(c), convert(c, r[idx[i]])])));
-}
-
-const WIDTH = 236; // terminal size at full screen, size 11 font
-const HEIGHT = 65;
-const STATUSES = ['Entered', 'Booked', 'Awaiting', 'Released', 'Picked', 'Ready'];
-const money = n => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-const mdy = d => d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-// Primary ids show in yellow. Added after sizing, since color codes take up characters; skipped when output isn't a terminal.
-const highlightId = (text, id) => text.replace(id, styleText('yellow', id));
+const late = l => l.shipDateCategory.endsWith('Late');
 const total = (lines, key) => lines.reduce((t, l) => t + l[key], 0);
 const earliest = (lines, key) => new Date(Math.min(...lines.map(l => l[key])));
 
@@ -71,75 +56,267 @@ function pick(values) {
   return (distinct[0] ?? '') + (distinct.length > 1 ? '+' : '');
 }
 
-// "Released 1, Picked 4, Ready 1", in STATUSES order.
-function statusSummary(lines) {
-  const counts = {};
-  for (const l of lines) counts[l.lineStatus] = (counts[l.lineStatus] || 0) + 1;
-  const rank = s => (STATUSES.indexOf(s) + 1) || 99;
-  return Object.entries(counts).sort((a, b) => rank(a[0]) - rank(b[0]))
-    .map(([s, n]) => `${s} ${n}`).join(', ');
+// The value, or a count like "3 ship tos" when they differ. Blanks are ignored.
+function variations(values, noun) {
+  const distinct = [...new Set(values.filter(Boolean))];
+  return distinct.length > 1 ? `${distinct.length} ${noun}` : distinct[0] ?? '';
 }
 
-// One order's lines -> a single line of text.
-function summarizeOrder(lines) {
-  return highlightId([
-    lines[0].orderNumber,
-    lines[0].shipTo.padEnd(40),
-    pick(lines.map(l => l.shippingMethod)).padEnd(36),
-    pick(lines.map(l => l.trip)).padEnd(8),
-    mdy(earliest(lines, 'shipDate')),
-    `${lines.length} ln`.padStart(6),
-    `${total(lines, 'cases').toLocaleString()} cs`.padStart(8),
-    money(total(lines, 'dollars')).padStart(11),
-    statusSummary(lines),
-  ].join('  ').slice(0, WIDTH), lines[0].orderNumber);
+// One status for a group of lines (an order or a trip row), from the lines' statuses.
+function orderStatus(lines) {
+  const statuses = new Set(lines.map(l => l.lineStatus));
+  if (statuses.has('Released')) return 'Released';
+  if ([...statuses].every(s => s === 'Picked' || s === 'Ready')) return statuses.has('Picked') ? 'Picked' : 'Ready';
+  return 'Holds';
 }
 
-// The line table on an order page: [heading, width, value, right-aligned].
-const LINE_COLUMNS = [
-  ['Item', 13, l => l.itemNo],
-  ['Description', 40, l => l.description],
-  ['Status', 8, l => l.lineStatus],
-  ['Trip', 7, l => l.trip],
-  ['Delivery', 8, l => l.delivery],
-  ['Make/Buy', 8, l => l.makeOrBuy],
-  ['Pieces', 7, l => l.pieceQty.toLocaleString(), true],
-  ['Cases', 6, l => l.cases.toLocaleString(), true],
-  ['Dollars', 11, l => money(l.dollars), true],
-  ['Dist Onhand', 11, l => l.distributionOnhand.toLocaleString(), true],
-  ['Open Orders', 11, l => l.openOrders.toLocaleString(), true],
+// Shipping Category -> mode (the same as the middle of the ship method, e.g. "SAIA-LTL-Standard").
+const MODES = { TRUCK: 'TL', LTL: 'LTL', PARCEL: 'Parcel' };
+
+// Sales channels that get inventory first when order dates tie, in this order ("HOME DEPOT" also takes
+// "HOME DEPOT.COM-OK"). All other channels come after them.
+const PRIORITY_CHANNELS = ['HOME DEPOT', 'LOWES', 'ACE', 'MENARDS'];
+const channelRank = l => {
+  const i = PRIORITY_CHANNELS.findIndex(c => l.salesChannel.startsWith(c));
+  return i < 0 ? PRIORITY_CHANNELS.length : i;
+};
+
+// Sets each line's allocation to 'allocated' or 'short'. Per item, lines take pieces from Distribution Onhand
+// oldest order date first, then by channel priority. A line that doesn't fit in what's left is short and
+// takes nothing, so a later, smaller line can still be allocated.
+function allocate(lines) {
+  for (const ls of Map.groupBy(lines, l => l.itemNo).values()) {
+    let left = ls[0].distributionOnhand;
+    for (const l of ls.toSorted((a, b) => a.orderDate - b.orderDate || channelRank(a) - channelRank(b))) {
+      l.allocation = l.pieceQty <= left ? 'allocated' : 'short';
+      if (l.allocation === 'allocated') left -= l.pieceQty;
+    }
+  }
+}
+
+// What every group of lines (an order or a trip row) gets computed.
+const summarize = lines => ({
+  lines,
+  status: orderStatus(lines),
+  // 'allocated' if no line is short, 'short' if every line is, 'split' if some are.
+  allocation: lines.every(l => l.allocation === 'allocated') ? 'allocated'
+    : lines.every(l => l.allocation === 'short') ? 'short' : 'split',
+  // Line status counts, most lines first: "Picked 597, Ready 67, Released 24".
+  lineStatuses: [...Map.groupBy(lines, l => l.lineStatus)].sort((a, b) => b[1].length - a[1].length)
+    .map(([status, ls]) => `${status} ${ls.length}`).join(', '),
+  shipDate: earliest(lines, 'shipDate'),
+  late: lines.some(late),
+  shipDateCategories: new Set(lines.map(l => l.shipDateCategory)), // e.g. "Today", "1-3 Days Late"
+  modes: new Set(lines.map(l => MODES[l.shippingCategory]).filter(Boolean)), // e.g. "TL", "Parcel"
+  pieces: total(lines, 'pieceQty'),
+  cases: total(lines, 'cases'),
+  dollars: total(lines, 'dollars'),
+});
+
+// For sorting summaries: soonest ship date first, then most dollars first.
+const soonestFirst = (a, b) => a.shipDate - b.shipDate || b.dollars - a.dollars;
+
+// Reads the CSV and does all grouping and computing once, so reports only filter, sort and format.
+// Returns { lines, orders, trips, items }:
+//   lines  - one object per order line, with just the COLUMNS above as camelCase properties, plus allocation
+//   orders - Map of order number -> the order's summary, plus its order-level fields
+//   trips  - the trip rows: lines on one trip, or one order's lines not on a trip. An order split
+//            across two trips is in both, each with only its own lines.
+//   items  - Map of item number -> the item's summary, plus its item-level fields
+function loadOrders(file) {
+  const [header, ...rows] = parseCsv(fs.readFileSync(file, 'utf8'));
+  const idx = COLUMNS.map(c => {
+    if (!header.includes(c)) throw new Error(`CSV is missing column: ${c}`);
+    return header.indexOf(c);
+  });
+  const lines = rows.map(r => Object.fromEntries(COLUMNS.map((c, i) => [toKey(c), convert(c, r[idx[i]])])));
+  allocate(lines);
+
+  const orders = new Map([...Map.groupBy(lines, l => l.orderNumber)].map(([orderNumber, ls]) => [orderNumber, {
+    ...summarize(ls),
+    orderNumber,
+    promiseDate: earliest(ls, 'promiseDate'),
+    shippingMethod: pick(ls.map(l => l.shippingMethod)),
+    shippingCategory: pick(ls.map(l => l.shippingCategory)),
+    trip: pick(ls.map(l => l.trip)),
+    delivery: pick(ls.map(l => l.delivery)),
+  }]));
+
+  const trips = [...Map.groupBy(lines, l => l.trip || `order ${l.orderNumber}`).values()].map(ls => ({
+    ...summarize(ls),
+    trip: ls[0].trip,
+    // Soonest first, by each order's lines on this row.
+    orderNumbers: [...Map.groupBy(ls, l => l.orderNumber).values()].map(summarize).sort(soonestFirst)
+      .map(o => o.lines[0].orderNumber),
+    shipTos: variations(ls.map(l => l.shipTo), 'ship tos'),
+    // Without the last part, for wide tables: "Fedex Express-Parcel-Ground" -> "Fedex Express-Parcel".
+    shippingMethods: variations(ls.map(l => l.shippingMethod.replace(/-[^-]*$/, '')), 'ship methods'),
+  }));
+
+  const items = new Map([...Map.groupBy(lines, l => l.itemNo)].map(([itemNo, ls]) => [itemNo, {
+    ...summarize(ls),
+    itemNo,
+    description: ls[0].description,
+    makeOrBuy: ls[0].makeOrBuy,
+    onhand: ls[0].distributionOnhand,
+  }]));
+
+  return { lines, orders, trips, items };
+}
+
+const HEIGHT = 50; // plan around a 200 x 50 console; one-page reports use the real console's rows when there is one
+const WARNING_STATUSES = ['Holds', 'Awaiting', 'Booked', 'Entered']; // shown in warning colors
+const money = n => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const mdy = d => d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+// Primary ids show in yellow; danger data white on red; warning data white on orange. Color is added after sizing,
+// since color codes take up characters, and is skipped when output isn't a terminal.
+const highlightId = (text, id) => text.replace(id, styleText('yellow', id));
+const danger = text => styleText(['bgRed', 'white'], text);
+// Orange isn't one of styleText's 16 basic colors, so this writes the 256-color code itself,
+// but only when styleText would add color (so both schemes turn on and off together).
+const warning = text => styleText('white', text) === text ? text : `\x1b[48;5;208m\x1b[37m${text}\x1b[39m\x1b[49m`;
+const warnStatus = status => WARNING_STATUSES.includes(status) && warning;
+
+// One table row: each column's text cut to its width and padded, 2 spaces apart.
+// A column's color(item) returns danger, warning or nothing; a color covers the whole cell width.
+const tableRow = (columns, textOf, item) => columns.map(c => {
+  const text = String(textOf(c)).slice(0, c.width);
+  const padded = c.right ? text.padStart(c.width) : text.padEnd(c.width);
+  const color = item && c.color?.(item);
+  return color ? color(padded) : padded;
+}).join('  ').trimEnd();
+
+// A table's headings row and dashes row.
+const tableHeader = columns => [tableRow(columns, c => c.heading), tableRow(columns, c => '-'.repeat(c.width))];
+
+// Table rows cut to fit `room` page rows. If some don't fit, the last row counts them: "... 12 more lines not shown".
+const fit = (rows, room, noun) => rows.length > room
+  ? [...rows.slice(0, room - 1), `... ${rows.length - room + 1} more ${noun} not shown`] : rows;
+
+// The orders report: one row per trip row (see loadOrders). Widths add up to 213, past the usual 200.
+// Allocation is red when short, orange when split. Line Statuses is orange when the row's own status
+// (what --status filters on) is Holds.
+const REPORT_COLUMNS = [
+  { heading: 'Trip', width: 7, value: r => r.trip },
+  { heading: 'Order Numbers', width: 38, value: r =>
+    r.orderNumbers.slice(0, 3).join(' ') + (r.orderNumbers.length > 3 ? ` ${r.orderNumbers.length - 3} more...` : '') },
+  { heading: 'Ship To', width: 40, value: r => r.shipTos },
+  { heading: 'Ship Method', width: 26, value: r => r.shippingMethods },
+  { heading: 'Ship Date', width: 10, value: r => mdy(r.shipDate), color: r => r.late && danger },
+  { heading: 'Orders', width: 6, right: true, value: r => r.orderNumbers.length },
+  { heading: 'Lines', width: 5, right: true, value: r => r.lines.length },
+  { heading: 'Cases', width: 6, right: true, value: r => r.cases.toLocaleString() },
+  { heading: 'Dollars', width: 11, right: true, value: r => money(r.dollars) },
+  { heading: 'Allocation', width: 10, value: r => r.allocation,
+    color: r => ({ short: danger, split: warning })[r.allocation] },
+  { heading: 'Line Statuses', width: 34, value: r => r.lineStatuses, color: r => warnStatus(r.status) },
 ];
 
-// One order's lines -> a page of text, at most WIDTH x HEIGHT. Lines that don't fit are counted, not shown.
-function orderPage(lines) {
-  const o = lines[0];
-  const pickOf = key => pick(lines.map(l => l[key]));
-  const cell = (label, value) => label.padEnd(17) + String(value).padEnd(61);
-  const tableRow = cells => cells.map((v, i) => {
-    const [, width, , right] = LINE_COLUMNS[i];
-    return right ? v.padStart(width) : v.padEnd(width);
-  }).join('  ').trimEnd();
+// Trip rows -> the orders page, at most `height` rows: totals over all the rows, then the rows, soonest ship date
+// first, then most dollars. Rows that don't fit are counted, not shown, but still included in the totals.
+function ordersPage(trips, height = HEIGHT) {
+  const page = [
+    `Orders  ${trips.length.toLocaleString()} rows: ${new Set(trips.flatMap(r => r.orderNumbers)).size.toLocaleString()} orders, ` +
+      `${trips.reduce((t, r) => t + r.lines.length, 0).toLocaleString()} lines, ${total(trips, 'cases').toLocaleString()} cases, ${money(total(trips, 'dollars'))}`,
+    '',
+    ...tableHeader(REPORT_COLUMNS),
+  ];
+  const rows = trips.toSorted(soonestFirst)
+    .map(r => r.orderNumbers.slice(0, 3).reduce(highlightId, tableRow(REPORT_COLUMNS, c => c.value(r), r)));
+  page.push(...fit(rows, Math.max(height - page.length, 1), 'rows'));
+  return page.join('\n');
+}
+
+// The line table on an order page. total(order): its value in the totals row. color: see tableRow.
+const LINE_COLUMNS = [
+  { heading: 'Item', width: 13, value: l => l.itemNo, total: o => `${o.lines.length} lines` },
+  { heading: 'Description', width: 40, value: l => l.description },
+  { heading: 'Status', width: 8, value: l => l.lineStatus, color: l => warnStatus(l.lineStatus) },
+  { heading: 'Trip', width: 7, value: l => l.trip },
+  { heading: 'Delivery', width: 8, value: l => l.delivery },
+  { heading: 'Make/Buy', width: 8, value: l => l.makeOrBuy },
+  { heading: 'Cases', width: 6, right: true, value: l => l.cases.toLocaleString(), total: o => o.cases.toLocaleString() },
+  { heading: 'Dollars', width: 11, right: true, value: l => money(l.dollars), total: o => money(o.dollars) },
+  { heading: 'Pieces', width: 8, right: true, value: l => l.pieceQty.toLocaleString(), total: o => o.pieces.toLocaleString() },
+  { heading: 'Allocation', width: 10, value: l => l.allocation, total: o => o.allocation, color: l => l.allocation === 'short' && danger },
+];
+
+// An order (from loadOrders) -> a page of text, at most 200 wide and `height` rows. Lines that don't fit are
+// counted, not shown, but still included in the totals.
+function orderPage(order, height = HEIGHT) {
+  const { lines } = order;
+  const first = lines[0]; // for fields that are the same on every line of an order
+  // A label and value, 3 across = 198. A color (danger or warning) covers just the value text, not its padding.
+  const cell = (label, value, color) => {
+    const text = String(value).slice(0, 50);
+    return label.padEnd(16) + (color ? color(text) : text) + ' '.repeat(50 - text.length);
+  };
+  const [headings, dashes] = tableHeader(LINE_COLUMNS);
 
   const page = [
-    `Order ${o.orderNumber}    ${lines.length} lines    ${total(lines, 'cases').toLocaleString()} cases    ` +
-      `${total(lines, 'pieceQty').toLocaleString()} pieces    ${money(total(lines, 'dollars'))}    ${statusSummary(lines)}`,
+    `Order ${order.orderNumber}`,
     '',
     ...[
-      [['Customer', o.customer], ['Ship To', o.shipTo], ['Order Date', mdy(o.orderDate)]],
-      [['Sales Channel', o.salesChannel], ['Ship Method', pickOf('shippingMethod')], ['Promise Date', mdy(earliest(lines, 'promiseDate'))]],
-      [['Business', o.business], ['Ship Category', pickOf('shippingCategory')], ['Ship Date', `${mdy(earliest(lines, 'shipDate'))}  ${o.shipDateCategory}`]],
-      [['PO Number', o.poNumber], ['Trip', pickOf('trip')], ['On Hold', o.onHold]],
-      [['', ''], ['Delivery', pickOf('delivery')], ['Ship and Cancel', o.shipAndCancel]],
-    ].map(row => row.map(([label, value]) => cell(label, value)).join('').trimEnd()),
+      [['Customer', first.customer], ['Ship To', first.shipTo], ['Order Date', mdy(first.orderDate)]],
+      [['Sales Channel', first.salesChannel], ['Ship Method', order.shippingMethod], ['Promise Date', mdy(order.promiseDate)]],
+      [['Business', first.business], ['Ship Category', order.shippingCategory], ['Ship Date', `${mdy(order.shipDate)}  ${first.shipDateCategory}`, order.late && danger]],
+      [['PO Number', first.poNumber], ['Trip', order.trip], ['On Hold', first.onHold]],
+      [['Order Status', order.status, warnStatus(order.status)], ['Delivery', order.delivery], ['Ship and Cancel', first.shipAndCancel]],
+    ].map(row => row.map(([label, value, color]) => cell(label, value, color)).join('').trimEnd()),
     '',
-    tableRow(LINE_COLUMNS.map(c => c[0])),
-    tableRow(LINE_COLUMNS.map(c => '-'.repeat(c[1]))),
+    headings,
+    dashes,
   ];
-  const room = HEIGHT - page.length;
-  const shown = lines.length > room ? lines.slice(0, room - 1) : lines;
-  page.push(...shown.map(l => tableRow(LINE_COLUMNS.map(c => c[2](l)))));
-  if (shown.length < lines.length) page.push(`... ${lines.length - shown.length} more lines not shown`);
-  return highlightId(page.map(r => r.slice(0, WIDTH)).join('\n'), o.orderNumber);
+  const room = Math.max(height - page.length - 2, 1); // 2 rows kept for the totals
+  page.push(...fit(lines.map(l => tableRow(LINE_COLUMNS, c => c.value(l), l)), room, 'lines'));
+  page.push(dashes, tableRow(LINE_COLUMNS, c => c.total?.(order) ?? ''));
+  return highlightId(page.join('\n'), order.orderNumber);
+}
+
+// The item table on the shortages page: one row per item's short lines (a summary). Onhand and Ordered
+// (all pieces) cover the whole item; the rest, including Ship Date (earliest), cover only the short lines.
+const SHORTAGE_COLUMNS = [
+  { heading: 'Item', width: 13, value: s => s.item.itemNo },
+  { heading: 'Description', width: 40, value: s => s.item.description },
+  { heading: 'Make/Buy', width: 8, value: s => s.item.makeOrBuy },
+  { heading: 'Onhand', width: 8, right: true, value: s => s.item.onhand.toLocaleString() },
+  { heading: 'Ordered', width: 8, right: true, value: s => s.item.pieces.toLocaleString() },
+  { heading: 'Short Pcs', width: 9, right: true, value: s => s.pieces.toLocaleString() },
+  { heading: 'Short Lines', width: 11, right: true, value: s => s.lines.length.toLocaleString() },
+  { heading: 'Short Orders', width: 12, right: true, value: s => s.orders.toLocaleString() },
+  { heading: 'Short Dollars', width: 13, right: true, value: s => money(s.dollars) },
+  { heading: 'Ship Date', width: 10, value: s => mdy(s.shipDate), color: s => s.late && danger },
+  { heading: 'Channels', width: 30, value: s => s.channels },
+];
+
+// Everything from loadOrders -> a page of text summarizing shortages, at most `height` rows: counts, then items
+// with short lines, most short dollars first. Items that don't fit are counted, not shown.
+// filters: ship date flags and channel. Items and lines count only matching lines; orders and trips are the rows
+// that match (see rowMatches), counted by their whole allocation, just as `ovh orders` would pick them.
+function shortagesPage({ lines, orders, trips, items }, filters = {}, height = HEIGHT) {
+  const picked = lines.filter(l => lineMatches(l, filters));
+  const shortLines = picked.filter(l => l.allocation === 'short');
+  const shortItems = [...Map.groupBy(shortLines, l => l.itemNo)].map(([itemNo, ls]) => ({
+    ...summarize(ls),
+    item: items.get(itemNo),
+    orders: new Set(ls.map(l => l.orderNumber)).size,
+    channels: variations(ls.map(l => l.salesChannel), 'channels'),
+  })).sort((a, b) => b.dollars - a.dollars);
+  const counts = groups => ['short', 'split', 'allocated']
+    .map(a => `${groups.filter(g => g.allocation === a && rowMatches(g, filters)).length.toLocaleString()} ${a}`).join(', ');
+  const page = [
+    'Shortages',
+    '',
+    `Items   ${shortItems.length.toLocaleString()} of ${new Set(picked.map(l => l.itemNo)).size.toLocaleString()} have short lines`,
+    `Lines   ${shortLines.length.toLocaleString()} short of ${picked.length.toLocaleString()}: ` +
+      `${total(shortLines, 'pieceQty').toLocaleString()} pieces, ${money(total(shortLines, 'dollars'))}`,
+    `Orders  ${counts([...orders.values()])}`,
+    `Trips   ${counts(trips)}`,
+    '',
+    ...tableHeader(SHORTAGE_COLUMNS),
+  ];
+  page.push(...fit(shortItems.map(s => tableRow(SHORTAGE_COLUMNS, c => c.value(s), s)), Math.max(height - page.length, 1), 'items'));
+  return page.join('\n');
 }
 
 // The most recently changed openorders*.csv in Downloads, e.g. "openordersextract (1).csv".
@@ -150,17 +327,110 @@ function newestExport() {
   return files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
 }
 
-module.exports = { loadOrders, summarizeOrder, orderPage };
+// Name filters: [option name, line property]. Match any part of any line on the row, ignoring case
+// ("depot" matches "HOME DEPOT.COM-OK").
+const FILTERS = [
+  ['channel', 'salesChannel'],
+  ['customer', 'customer'],
+  ['shipto', 'shipTo'],
+];
 
-// node orders.js [orderNumber] [file.csv]
+// Ship date filters: flag -> the export's Ship Date Categories it takes, as of when the export was run.
+const LATE = ['9+ Days Late', '4-8 Days Late', '1-3 Days Late'];
+const DATE_FILTERS = {
+  due: [...LATE, 'Today', 'Tomorrow'],
+  late: LATE,
+  '9plus': ['9+ Days Late'],
+  '4to8': ['4-8 Days Late'],
+  '1to3': ['1-3 Days Late'],
+  today: ['Today'],
+  tomorrow: ['Tomorrow'],
+};
+
+// Allocation filters: flag -> the row's allocation it takes.
+const ALLOCATION_FILTERS = { alloc: 'allocated', split: 'split', short: 'short' };
+
+// The Ship Date Categories the date flags given take, e.g. { today: true, tomorrow: true } -> ['Today', 'Tomorrow'].
+const dateCategories = filters => Object.keys(DATE_FILTERS).filter(flag => filters[flag]).flatMap(flag => DATE_FILTERS[flag]);
+// True if text contains part, ignoring case.
+const contains = (text, part) => text.toUpperCase().includes(part.toUpperCase());
+
+// True if one line matches the name filters and ship date flags given, e.g. { channel: 'depot', today: true }.
+function lineMatches(line, filters) {
+  const categories = dateCategories(filters);
+  return FILTERS.every(([name, key]) => !filters[name] || contains(line[key], filters[name]))
+    && (!categories.length || categories.includes(line.shipDateCategory));
+}
+
+// True if a trip row matches every filter given, e.g. { channel: 'lowes', status: 'holds', today: true }.
+// status: the row's status, exactly (ignoring case). Date flags stack: --today --tomorrow is either day;
+// a row matches if any of its lines is in one of the flags' categories. Allocation flags stack the same way,
+// on the row's allocation. mode: a list, e.g. ['tl', 'ltl']; a row matches if any of its lines has one of them.
+function rowMatches(row, filters) {
+  const categories = dateCategories(filters);
+  const allocations = Object.keys(ALLOCATION_FILTERS).filter(flag => filters[flag]).map(flag => ALLOCATION_FILTERS[flag]);
+  return FILTERS.every(([name, key]) => !filters[name] || row.lines.some(l => contains(l[key], filters[name])))
+    && (!filters.status || row.status.toUpperCase() === filters.status.toUpperCase())
+    && (!categories.length || categories.some(c => row.shipDateCategories.has(c)))
+    && (!allocations.length || allocations.includes(row.allocation))
+    && (!filters.mode?.length || [...row.modes].some(m => filters.mode.some(want => want.toUpperCase() === m.toUpperCase())));
+}
+
+module.exports = { loadOrders, rowMatches, ordersPage, orderPage, shortagesPage };
+
+const USAGE = `Usage: ovh orders [--due] [--late] [--9plus] [--4to8] [--1to3] [--today] [--tomorrow] [--alloc] [--split] [--short] [--status holds] [--mode tl] [--channel depot] [--customer "ace hdw"] [--shipto morrow] [--file file.csv]
+       ovh order 54013306 [--file file.csv]
+       ovh shortages [--due] [--late] [--today] [--tomorrow] [--channel depot] [--file file.csv]`;
+
+// The options each command accepts. Anything else is an error.
+const COMMANDS = {
+  orders: {
+    ...Object.fromEntries(FILTERS.map(([name]) => [name, { type: 'string' }])),
+    status: { type: 'string' },
+    mode: { type: 'string', multiple: true },
+    ...Object.fromEntries([...Object.keys(DATE_FILTERS), ...Object.keys(ALLOCATION_FILTERS)].map(flag => [flag, { type: 'boolean' }])),
+    file: { type: 'string' },
+  },
+  order: { file: { type: 'string' } },
+  shortages: {
+    ...Object.fromEntries(['due', 'late', 'today', 'tomorrow'].map(flag => [flag, { type: 'boolean' }])),
+    channel: { type: 'string' },
+    file: { type: 'string' },
+  },
+};
+
+// ovh <command> [options]   ("ovh" is set up by package.json + npm link)
 if (require.main === module) {
-  const args = process.argv.slice(2);
-  const isOrderNo = a => /^\d+$/.test(a);
-  const orderNo = args.find(isOrderNo);
-  const file = args.find(a => !isOrderNo(a)) ?? newestExport();
+  const [command, ...args] = process.argv.slice(2);
+  let opts, positionals;
+  try {
+    if (!Object.hasOwn(COMMANDS, command)) throw new Error(command ? `Unknown command '${command}'` : 'Missing command');
+    // Only "order" takes a bare value: the order number.
+    ({ values: opts, positionals } = parseArgs({ args, options: COMMANDS[command], allowPositionals: command === 'order' }));
+    if (command === 'order' && positionals.length !== 1) throw new Error('Give exactly one order number');
+    for (const mode of opts.mode ?? []) {
+      if (!Object.values(MODES).some(m => m.toUpperCase() === mode.toUpperCase())) throw new Error(`Unknown mode '${mode}': use TL, LTL or Parcel`);
+    }
+  } catch (e) {
+    console.error(`${e.message}\n${USAGE}`);
+    process.exit(1);
+  }
+  const file = opts.file ?? newestExport();
   console.error(`Loading ${file}`);
-  const byOrder = Map.groupBy(loadOrders(file), l => l.orderNumber);
-  if (!orderNo) for (const lines of byOrder.values()) console.log(summarizeOrder(lines));
-  else if (byOrder.has(orderNo)) console.log(orderPage(byOrder.get(orderNo)));
-  else { console.error(`Order ${orderNo} not found`); process.exitCode = 1; }
+  const data = loadOrders(file);
+  // One-page reports. In a console, fill the screen: its rows less the "Loading" line above and the prompt below,
+  // with blank rows after the page. Saved to a file: HEIGHT rows at most, no blank rows.
+  const tty = process.stdout.isTTY;
+  const height = tty ? process.stdout.rows - 2 : HEIGHT;
+  const printPage = page => console.log(tty ? page + '\n'.repeat(Math.max(height - page.split('\n').length, 0)) : page);
+  if (command === 'order') {
+    const order = data.orders.get(positionals[0]);
+    if (order) printPage(orderPage(order, height));
+    else { console.error(`Order ${positionals[0]} not found`); process.exitCode = 1; }
+  } else if (command === 'shortages') printPage(shortagesPage(data, opts, height));
+  else {
+    const rows = data.trips.filter(r => rowMatches(r, opts));
+    if (!rows.length) { console.error('No matching rows'); process.exitCode = 1; }
+    else printPage(ordersPage(rows, height));
+  }
 }
