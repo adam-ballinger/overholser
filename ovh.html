@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ovh</title>
+<style>
+  :root { color-scheme: light }
+  body { margin: 0; padding: 12px 16px; background: #faf9f7; color: #1b1b19;
+         font: 13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace }
+  button, .button { font: inherit; padding: 2px 10px; border: 1px solid #c9c6bf; background: #f2f0eb;
+                    color: inherit; cursor: pointer }
+  button:hover, .button:hover { background: #e8e5de }
+  /* Header: the logo, a truck hauling "ovh", with the name and version beside it (under it on a phone).
+     Line height 1 so the box and block characters join up. Only characters Consolas has, so it lines up
+     on any Windows machine. */
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 20px; margin-bottom: 10px }
+  .logo { margin: 0; font: inherit; line-height: 1 }
+  .logo .frame { color: #94918a }
+  .logo .speed { color: #d3d0c9 }
+  .logo .lamp { color: #b25a00 }
+  .brand { padding-bottom: 2px; line-height: 1.4; color: #94918a }
+  .brand b { color: #1b1b19 }
+  #version { color: #8a5a00 }
+  /* Tabs: the one showing is underlined. */
+  #tabs { display: flex; margin: 0 -16px 12px; padding: 0 16px; border-bottom: 1px solid #c9c6bf }
+  #tabs button { margin-bottom: -1px; padding: 4px 14px; border: 0; border-bottom: 2px solid transparent;
+                 background: none; color: #94918a }
+  #tabs button:hover { color: #1b1b19 }
+  #tabs button.on { color: #1b1b19; border-bottom-color: #1b1b19 }
+
+  /* Orders tab */
+  .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px }
+  #filename { color: #55534d }
+  /* The loading bar: "████████░░░░░░░░░░░░  40% reading". */
+  #progress { color: #94918a }
+  #progress b { font-weight: normal; color: #b25a00 }
+  #progress i { font-style: normal; color: #d3d0c9 }
+  #clear { margin-left: auto }                           /* Clear, Copy and Save sit at the right */
+  /* The filter bar reads as a prompt: "> --today --thd". */
+  .bar { display: flex; align-items: center; gap: 8px; margin-top: 10px; border-bottom: 1px solid #c9c6bf }
+  .bar > span { color: #94918a }
+  #flags { flex: 1; min-width: 0; font: inherit; padding: 4px 0; border: 0; outline: none; background: none; color: inherit }
+  #message { color: #a4271c }
+  /* Every flag the report takes, a row of buttons per group. */
+  #tags { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px }
+  #tags div { display: flex; flex-wrap: wrap; gap: 4px }
+  #tags button { padding: 0 6px }
+  #stats { display: flex; flex-wrap: wrap; gap: 2px 24px; margin: 12px 0; color: #55534d }
+  #stats .headline { flex-basis: 100%; color: #1b1b19 }
+  #stats b { font-weight: normal; color: #94918a }
+  /* Columns keep the report's proportions but are shares of the window, so it always fits. */
+  table { width: 100%; table-layout: fixed; border-collapse: collapse }
+  th { text-align: left; font-weight: 600; padding: 2px 8px 4px 0; border-bottom: 1px dashed #b5b1a8 }
+  td { padding: 1px 8px 1px 0 }
+  /* One line per row, cut with an ellipsis the way the report cuts to its column width. */
+  th, td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+  tr:hover td:not(.group) { background: #efece5 }
+  /* Divider above each ship date group: late, today, tomorrow, future. */
+  td.group { padding: 14px 0 3px; border-bottom: 1px solid #b5b1a8; color: #94918a }
+  td.group b { color: #1b1b19; letter-spacing: 1px }
+  td.group.late, td.group.late b { color: #b3261e; border-bottom-color: #b3261e }
+  .right { text-align: right }
+  .id { color: #8a5a00 }                                 /* order numbers, yellow in the console */
+  .danger { background: #b3261e; color: #fff }           /* late ship date, short allocation */
+  .warning { background: #b25a00; color: #fff }          /* split allocation, Holds, the 144" tag */
+  .cyan { background: #0e7c86; color: #fff }             /* the flr-mtl tag (temporary) */
+  .danger, .warning, .cyan { padding: 0 3px }            /* on the text only, so a little room around it */
+  /* Narrow windows drop columns rather than squeezing every one of them; a phone keeps
+     what you can't read the row without: one order number, the date, dollars, allocation. */
+  @media (max-width: 900px) { .ship-method, .items { display: none } }
+  @media (max-width: 600px) {
+    .ship-to, .trip, .orders, .lines, .cases, .line-statuses { display: none }
+  }
+
+  /* Help tab: kept to a readable width. */
+  .help { max-width: 96ch; line-height: 1.6 }
+  .help h1 { margin: 4px 0 8px; font-size: 1.5em }
+  .help h2 { margin: 28px 0 8px; font-size: 1.2em }
+  .help p, .help ul { margin: 8px 0 }
+  .help ul { padding-left: 2.5ch }
+  .help code { padding: 0 3px; background: #efece5; white-space: nowrap }
+  .help pre { padding: 8px 12px; overflow-x: auto; border: 1px solid #e0ddd6; background: #f2f0eb; line-height: 1.4 }
+</style>
+</head>
+<body>
+<header>
+<pre class="logo" role="img" aria-label="ovh">
+     <span class="frame">┌─────────────────────┐</span>
+<span class="speed">  ── </span><span class="frame">│</span> ▄▀▀▀▄  █   █  █   █ <span class="frame">│ ┌───┐</span>
+<span class="speed"> ─── </span><span class="frame">│</span> █   █  ▀▄ ▄▀  █▀▀▀█ <span class="frame">│═╡ <span class="lamp">▪</span> └┐</span>
+<span class="speed">   ─ </span><span class="frame">│</span>  ▀▀▀     ▀    ▀   ▀ <span class="frame">│ │    │</span>
+     <span class="frame">└──●─●───────────●─●──┘ └●──●┘</span></pre>
+<div class="brand"><b>overholser</b><br>open orders, sorted<br><span id="version"></span></div>
+</header>
+<nav id="tabs"><button data-tab="orders-tab" class="on">orders</button><button data-tab="help-tab">help</button></nav>
+<main>
+<section id="orders-tab">
+  <div class="tools">
+    <label class="button">Open CSV<input type="file" id="csv" accept=".csv" hidden></label>
+    <span id="progress"></span>
+    <span id="filename"></span>
+    <button id="clear" title="Clear the filter line">Clear</button>
+    <button id="copy">Copy table</button>
+    <button id="save">Save table</button>
+  </div>
+  <div class="bar"><span>&gt;</span><input id="flags" autocomplete="off" spellcheck="false"
+    placeholder="type filters or click them below; Enter runs them"></div>
+  <div id="message"></div>
+  <div id="tags"></div>
+  <div id="stats">Pick an open orders export. It stays in this browser.</div>
+  <table id="report"></table>
+</section>
+<section id="help-tab" class="help" hidden></section>
+</main>
+
+<script src="ovh.js"></script>
+<script>
+// The page: tabs, the orders report, the help. All the loading, allocating and filtering is ovh.js's,
+// loaded above as a plain script: everything it defines at the top level is a name this script can use.
+// What bundle.js puts in for sharable-ovh.html, since the page can't read files itself:
+// { version } from package.json and { help } from HELP.md.
+const BUNDLE = null;
+version.textContent = BUNDLE ? `v${BUNDLE.version}` : 'dev, not bundled';
+
+// Tabs: each button shows the section its data-tab names and hides the others.
+tabs.addEventListener('click', e => {
+  const tab = e.target.dataset.tab;
+  if (!tab) return;
+  for (const button of tabs.children) button.classList.toggle('on', button === e.target);
+  for (const section of document.querySelectorAll('main > section')) section.hidden = section.id !== tab;
+});
+
+// ---- Orders tab ----
+
+let data = null;   // the export, once one is picked
+let rows = [];     // the rows the flags picked last, in report order - what the stats and Copy table cover
+let shownFlags = ''; // the filter line those rows came from (the bar may since hold a typo)
+
+// The columns Copy table uses: the report's own, with its " ..." for "more than shown" turned into the "…" the
+// browser ends a cut cell with. Items keeps to the report's width (its first few items), since an email doesn't
+// cut cells to fit.
+const COLUMNS_COPY = REPORT_COLUMNS.map(c => ['Order Numbers', 'Items'].includes(c.heading)
+  ? { ...c, value: r => c.value(r).replace(/ \.\.\.$/, '…') } : c);
+// The page's columns: the same, but Items lists every item and the browser cuts the cell to fit the window.
+const COLUMNS_HTML = COLUMNS_COPY.map(c => c.heading === 'Items' ? { ...c, value: r => itemsCell(r, 999) } : c);
+// Dates, money and counts keep their exact width (plus a character for the gap); the wide text columns
+// share whatever the window has left, so the table always fits it and only they get cut short.
+const th = c => `<th class="${slug(c)}${c.right ? ' right' : ''}"${c.width <= 11 ? ` style="width:${c.width + 1}ch"` : ''}>${c.heading}</th>`;
+// What a column's color(row) means in HTML. Nothing decides a color twice: the columns still own the rules.
+const CLASSES = new Map([[danger, 'danger'], [warning, 'warning'], [cyan, 'cyan']]);
+
+const slug = c => c.heading.toLowerCase().replace(/[^a-z]+/g, '-');
+const esc = text => text.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// One cell. title shows the whole value when the column is too narrow for it. A color marks just the text, not
+// the whole cell; in Items it's only the tags at the front (144", flr-mtl), each in its own color.
+function td(c, r) {
+  const text = String(c.value(r));
+  const classes = [slug(c), c.right && 'right', c.heading === 'Order Numbers' && 'id'].filter(Boolean).join(' ');
+  const color = CLASSES.get(c.color?.(r));
+  const tags = c.heading === 'Items' ? ITEM_TAGS.filter(([, key]) => r[key]) : [];
+  const body = tags.length
+    ? tags.map(([tag, , tagColor]) => `<span class="${CLASSES.get(tagColor)}">${esc(tag)}</span> `).join('')
+      + esc(tags.reduce((rest, [tag]) => rest.slice(tag.length + 1), text)) // what follows "144" flr-mtl "
+    : color ? `<span class="${color}">${esc(text)}</span>` : esc(text);
+  return `<td class="${classes}" title="${esc(text)}">${body}</td>`;
+}
+
+// What the rows picked add up to, under the console's own counts line. Most of them are some of the rows,
+// so they read the same way: "23 rows, $95,116.60".
+const worth = rs => `${count(rs.length, 'row')}, ${money(total(rs, 'dollars'))}`;
+// Allocation is counted in lines, not rows, since a split row holds both kinds: "412 lines short, $95,116.60".
+const lineWorth = (rs, allocation) => {
+  const ls = rs.flatMap(r => r.lines).filter(l => l.allocation === allocation);
+  return `${ls.length.toLocaleString()} line${ls.length === 1 ? '' : 's'} ${allocation}, ${money(total(ls, 'dollars'))}`;
+};
+// [label, value]; the allocation ones say what they are in the value, so they have no label.
+const STATS = [
+  ['Late', rs => worth(rs.filter(r => r.late))],
+  ['', rs => lineWorth(rs, 'short')],
+  ['', rs => lineWorth(rs, 'alloc')],
+  ['Holds', rs => worth(rs.filter(r => r.status === 'Holds'))],
+  ['144"', rs => worth(rs.filter(r => r.has144))],
+  ['Ship dates', rs => `${mdy(earliest(rs, 'shipDate'))} to ${mdy(new Date(Math.max(...rs.map(r => r.shipDate))))}`],
+  // The channel with the most dollars on these rows, over their lines (a row can hold more than one).
+  ['Biggest channel', rs => {
+    const [channel, ls] = [...Map.groupBy(rs.flatMap(r => r.lines), l => l.salesChannel)]
+      .sort((a, b) => total(b[1], 'dollars') - total(a[1], 'dollars'))[0];
+    return `${channel}, ${money(total(ls, 'dollars'))}`;
+  }],
+];
+
+// '--today --shipto "ace hdw"' -> { today: true, shipto: ['ace hdw'] }: the same object
+// util.parseArgs hands the CLI, from the same list of options, so the filters below behave the same.
+function parseFlags(text) {
+  const opts = {};
+  const tokens = text.match(/"[^"]*"|\S+/g) ?? [];
+  for (let i = 0; i < tokens.length; i++) {
+    const [, name, inline] = /^--([^=]+)(?:=(.*))?$/.exec(tokens[i]) ?? [];
+    const option = Object.hasOwn(COMMANDS.orders, name) && COMMANDS.orders[name];
+    if (!option || name === 'file' || name === 'csv') throw new Error(`Unknown option '${tokens[i]}'`);
+    if (option.type === 'boolean') opts[name] = true;
+    else {
+      const value = inline ?? tokens[++i];
+      if (value === undefined) throw new Error(`--${name} needs a value`);
+      (opts[name] ??= []).push(value.replace(/^"|"$/g, ''));
+    }
+  }
+  return opts;
+}
+
+// The whole report: the counts line, a few numbers about the rows, then every row the flags pick, soonest
+// ship date first. No one page limit.
+function render() {
+  if (!data) return;
+  let opts;
+  try { opts = parseFlags(flags.value); } catch (e) { message.textContent = e.message; return; }
+  message.textContent = '';
+  shownFlags = flags.value.trim().replace(/\s+/g, ' ');
+  const picked = data.trips.filter(r => rowMatches(r, opts));
+  rows = (opts.dollars ? topDollars(picked) : picked).toSorted(soonestFirst);
+  stats.innerHTML = rows.length
+    ? `<div class="headline">${ordersTotals(rows)}</div>`
+      + STATS.map(([label, value]) => `<div>${label && `<b>${esc(label)}</b> `}${esc(value(rows))}</div>`).join('')
+    : 'No matching rows';
+  report.innerHTML = rows.length ? tableRows(COLUMNS_HTML) : '';
+}
+
+// A row's ship date group, from the Ship Date Category of its earliest line (as of when the export was run).
+// The categories follow date order, so rows sorted soonest first fall into these groups one after another.
+const dateGroup = r => {
+  const category = r.lines.find(l => +l.shipDate === +r.shipDate).shipDateCategory;
+  return category.endsWith('Late') ? 'late' : category === 'Today' ? 'today' : category === 'Tomorrow' ? 'tomorrow' : 'future';
+};
+
+// The headings row, then the picked rows as HTML, each ship date group under a divider row that says what it
+// holds: "LATE  23 rows, $393,658.52".
+const tableRows = columns => `<tr>${columns.map(th).join('')}</tr>`
+  + [...Map.groupBy(rows, dateGroup)].map(([group, rs]) =>
+    `<tr><td class="group ${group}" colspan="${columns.length}"><b>${group.toUpperCase()}</b>&nbsp; ${worth(rs)}</td></tr>`
+    + rs.map(r => `<tr>${columns.map(c => td(c, r)).join('')}</tr>`).join('')).join('');
+
+// Every flag the report takes, as buttons that type themselves into the bar: a row for each tag group (ship
+// dates, channels, allocation, status, mode), the other plain flags, then the two that take a name. The lists
+// are ovh.js's own, so a new flag turns up here on its own.
+const NAMES = FILTERS.map(([name]) => name);
+const GROUPS = Object.values(TAGS).map(group => Object.keys(group.flags));
+GROUPS.push(Object.keys(COMMANDS.orders).filter(n => ![...GROUPS.flat(), ...NAMES, 'file', 'csv'].includes(n)), NAMES);
+tags.innerHTML = GROUPS.map(group =>
+  `<div>${group.map(n => `<button data-flag="${n}">--${n}</button>`).join('')}</div>`).join('');
+
+tags.addEventListener('click', e => {
+  const flag = e.target.dataset.flag;
+  if (!flag) return;
+  const takesValue = COMMANDS.orders[flag].type === 'string';
+  const parts = flags.value.split(/\s+/).filter(Boolean);
+  const at = parts.indexOf(`--${flag}`);
+  // Clicking a flag that's already on the line takes it off again. One that needs a value waits for it.
+  if (at >= 0 && !takesValue) parts.splice(at, 1);
+  else parts.push(`--${flag}`);
+  flags.value = parts.join(' ') + (takesValue ? ' ' : '');
+  flags.focus();
+  if (!takesValue) render();
+});
+
+// The loading bar, `share` (0 to 1) of 20 blocks filled, then what's happening.
+const showProgress = (share, label) => {
+  const filled = Math.round(share * 20);
+  progress.innerHTML = `<b>${'█'.repeat(filled)}</b><i>${'░'.repeat(20 - filled)}</i> ${String(Math.round(share * 100)).padStart(3)}% ${label}`;
+};
+// Lets the browser draw the bar before a step that holds it up (loadOrders and render run in one go). A short
+// timer rather than waiting for a frame, which never comes while the tab is in the background.
+const paint = () => new Promise(resolve => setTimeout(resolve, 30));
+let progressTimer;
+
+// The file as text, moving the bar through the first 40% as it's read.
+const readText = file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onprogress = e => e.lengthComputable && showProgress(0.4 * e.loaded / e.total, 'reading');
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = () => reject(reader.error);
+  reader.readAsText(file);
+});
+
+// Loads a picked export, with the bar going: reading, sorting (allocation and grouping), drawing, then done and
+// how long it took, which stays up for a few seconds.
+csv.addEventListener('change', async () => {
+  const file = csv.files[0];
+  if (!file) return;
+  clearTimeout(progressTimer);
+  filename.textContent = file.name;
+  const start = performance.now();
+  try {
+    showProgress(0, 'reading');
+    const text = await readText(file);
+    showProgress(0.45, 'sorting orders');
+    await paint();
+    data = loadOrders(text);
+    showProgress(0.85, 'drawing');
+    await paint();
+  } catch (e) { data = null; progress.textContent = ''; message.textContent = e.message; return; }
+  render();
+  showProgress(1, `done in ${((performance.now() - start) / 1000).toFixed(1)}s`);
+  progressTimer = setTimeout(() => progress.textContent = '', 4000);
+  flags.focus();
+});
+flags.addEventListener('keydown', e => { if (e.key === 'Enter') render(); });
+clear.addEventListener('click', () => { flags.value = ''; flags.focus(); render(); });
+
+// A pasted table carries no stylesheet, so each cell takes its own style. Same colors as above. Cells stay on
+// one line, so each column is as wide as its longest value and no wider.
+const inlineStyle = cell => [cell.tagName === 'SPAN' ? 'padding:0 3px' : 'padding:2px 10px 2px 0;white-space:nowrap',
+  cell.tagName === 'TH' && 'font-weight:600;text-align:left;border-bottom:1px solid #b5b1a8',
+  cell.classList.contains('right') && 'text-align:right',
+  cell.classList.contains('danger') && 'background:#b3261e;color:#fff',
+  cell.classList.contains('warning') && 'background:#b25a00;color:#fff',
+  cell.classList.contains('cyan') && 'background:#0e7c86;color:#fff',
+  cell.classList.contains('id') && 'color:#8a5a00',
+  cell.classList.contains('group') && 'padding:12px 0 2px;border-bottom:1px solid #b5b1a8',
+  cell.classList.contains('late') && 'color:#b3261e;border-bottom-color:#b3261e',
+].filter(Boolean).join(';');
+
+// The table as the email gets it: built apart from the page, so none of the page's own table styles (its
+// window-wide, fixed-width columns) come along; only the inline styles above.
+function emailTable() {
+  const table = document.createElement('table');
+  table.innerHTML = tableRows(COLUMNS_COPY);
+  table.setAttribute('style', 'border-collapse:collapse;font-family:Consolas,monospace;font-size:12px');
+  for (const cell of table.querySelectorAll('th, td, span')) {
+    cell.setAttribute('style', inlineStyle(cell));
+    if (cell.tagName !== 'SPAN') cell.setAttribute('nowrap', ''); // Outlook skips white-space, not this
+    cell.removeAttribute('class');
+    cell.removeAttribute('title');
+  }
+  return table.outerHTML;
+}
+
+// Copies the whole table, ready to paste into an email: that table as HTML, and tab-separated text for plain
+// email or a spreadsheet. Every column goes, even the ones a narrow window is hiding. The copy event hands the
+// clipboard exactly these, instead of whatever the browser would make of a selection.
+copy.addEventListener('click', () => {
+  if (!rows.length) return;
+  const text = [COLUMNS_COPY.map(c => c.heading), ...rows.map(r => COLUMNS_COPY.map(c => String(c.value(r))))]
+    .map(cells => cells.join('\t')).join('\n');
+  const fill = e => {
+    e.clipboardData.setData('text/html', emailTable());
+    e.clipboardData.setData('text/plain', text);
+    e.preventDefault();
+  };
+  document.addEventListener('copy', fill);
+  const copied = document.execCommand('copy');
+  document.removeEventListener('copy', fill);
+  message.textContent = copied ? '' : 'Could not copy the table';
+  if (copied) {
+    // Ctrl+Shift+V (which Outlook on the web suggests when its own Paste button can't read the clipboard) drops the colors.
+    copy.textContent = `Copied ${rows.length} rows: paste with Ctrl+V`;
+    setTimeout(() => copy.textContent = 'Copy table', 4000);
+  }
+});
+
+// Saves the same table as an HTML file, under a heading that says what it is: the filters, the export and the
+// counts line. For when a pasted copy loses its formatting: open the file, or attach it.
+save.addEventListener('click', () => {
+  if (!rows.length) return;
+  const title = `ovh orders ${shownFlags}`.trim();
+  const page = `<!doctype html>
+<html><head><meta charset="utf-8"><title>${esc(title)}</title></head>
+<body style="font-family:Consolas,monospace;font-size:12px">
+<p><b>${esc(title)}</b><br>${esc(filename.textContent)}<br>${esc(ordersTotals(rows))}</p>
+${emailTable()}
+</body></html>`;
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([page], { type: 'text/html' }));
+  // "2026-09-16 ovh --late --thd.html" (en-CA writes the date that way), without the characters a Windows
+  // file name can't have, like the quotes around a --shipto name.
+  link.download = `${new Date().toLocaleDateString('en-CA')} ovh ${shownFlags}`.trim().replace(/[\\/:*?"<>|]/g, '') + '.html';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+});
+
+// ---- Help tab ----
+
+// HELP.md -> HTML: headings, paragraphs, bullet lists (nested by indent), code blocks, `code` and **bold**.
+// Just what the help uses; anything else shows as plain text.
+function markdown(text) {
+  const inline = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  const out = [];
+  const lists = []; // the indent of each open bullet list, innermost last
+  let code = false, para = false;
+  const endPara = () => { if (para) out.push('</p>'); para = false; };
+  const endLists = (indent = -1) => { while (lists.at(-1) > indent) { out.push('</li></ul>'); lists.pop(); } };
+  for (const line of text.split(/\r?\n/)) {
+    if (line.startsWith('```')) { endPara(); endLists(); out.push(code ? '</pre>' : '<pre>'); code = !code; continue; }
+    if (code) { out.push(esc(line) + '\n'); continue; }
+    const heading = /^(#+) (.*)/.exec(line);
+    const bullet = /^( *)- (.*)/.exec(line);
+    if (!line.trim()) { endPara(); endLists(); }
+    else if (heading) { endPara(); endLists(); out.push(`<h${heading[1].length}>${inline(heading[2])}</h${heading[1].length}>`); }
+    else if (bullet) {
+      const indent = bullet[1].length;
+      endPara();
+      endLists(indent);
+      // A bullet at the same indent is the next item; a deeper one starts a list inside the item above.
+      if (lists.at(-1) === indent) out.push('</li>');
+      else { out.push('<ul>'); lists.push(indent); }
+      out.push(`<li>${inline(bullet[2])}`);
+    }
+    else if (lists.length) out.push(` ${inline(line.trim())}`); // a bullet's text running onto the next line
+    else { out.push(para ? ' ' : '<p>', inline(line.trim())); para = true; }
+  }
+  endPara();
+  endLists();
+  return out.join('');
+}
+
+document.getElementById('help-tab').innerHTML = BUNDLE ? markdown(BUNDLE.help)
+  : '<p>The help shows here in sharable-ovh.html. Build that with <code>node bundle.js</code>.</p>';
+</script>
+</body>
+</html>

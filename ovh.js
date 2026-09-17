@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { parseArgs, styleText } = require('util');
+// The browser (ovh.html) has no require: only the CLI parts at the bottom need these.
+const node = typeof require === 'function';
+const fs = node && require('fs');
+const os = node && require('os');
+const path = node && require('path');
+// Without styleText, danger and warning leave their text alone; the page colors its own cells.
+const { parseArgs, styleText } = node ? require('util') : { styleText: (format, text) => text };
 
 // Splits CSV text into rows of fields. Handles "quoted, fields" and "" escapes.
 function parseCsv(text) {
@@ -116,6 +119,18 @@ function allocate(lines) {
   }
 }
 
+// TEMPORARY: Home Depot's Flooring items, from "2026-09-12 Home Depot Item Category Master Reference.xlsx"
+// (Downloads). A HOME DEPOT-OK line with one of them makes its row "flr-mtl": tagged in Items, picked by --flr-mtl.
+// To take the feature out, delete this, flrMtl below, its ITEM_TAGS entry, and --flr-mtl in rowMatches/COMMANDS.
+const FLR_MTL_ITEMS = new Set(`
+  31351 31352 31354 31356 31373 31380 31382 31396 31397 31398 31399 31400 31970 31975 31978 31979 31981 31982
+  31984 43311 43361 43364 43366 43373 43376 43378 43380 43381 43382 43383 43385 43872 43934 43975 43976 65110
+  66120 66121 66123 66126 66127 66128 66132 66133 66136 66137 66139 66149 66150 66159 66188 66189 66191 66200
+  66201 66202 66203 66210 66269 66270 66271 66273 66274 66275 66276 66277 66278 66279 66280 66281 66282 66283
+  66284 66285 66286 66287 66288 66289 66290 66291 66292 66293 66294 73792 73826 78014 84202 85092 85357 85365
+  85415 85423 85605 85613 85621 85639 95600 95601 95602 95603 95604 95605 95606 95607`.trim().split(/\s+/));
+const isFlrMtl = l => l.salesChannel === 'HOME DEPOT-OK' && FLR_MTL_ITEMS.has(l.itemNo);
+
 // What every group of lines (an order or a trip row) gets computed.
 const summarize = lines => ({
   lines,
@@ -128,12 +143,11 @@ const summarize = lines => ({
     .map(([status, ls]) => `${status} ${ls.length}`).join(', '),
   shipDate: earliest(lines, 'shipDate'),
   late: lines.some(late),
-  shipDateCategories: new Set(lines.map(l => l.shipDateCategory)), // e.g. "Today", "1-3 Days Late"
-  modes: new Set(lines.map(l => MODES[l.shippingCategory]).filter(Boolean)), // e.g. "TL", "Parcel"
   // The items, biggest dollars first, and whether any line is a 144" item (the orders report tags those).
   itemNos: [...Map.groupBy(lines, l => l.itemNo)].map(([itemNo, ls]) => [itemNo, total(ls, 'dollars')])
     .sort((a, b) => b[1] - a[1]).map(([itemNo]) => itemNo),
   has144: lines.some(l => l.description.includes('144"')),
+  flrMtl: lines.some(isFlrMtl), // TEMPORARY, see FLR_MTL_ITEMS
   pieces: total(lines, 'pieceQty'),
   cases: total(lines, 'cases'),
   dollars: total(lines, 'dollars'),
@@ -142,15 +156,15 @@ const summarize = lines => ({
 // For sorting summaries: soonest ship date first, then most dollars first.
 const soonestFirst = (a, b) => a.shipDate - b.shipDate || b.dollars - a.dollars;
 
-// Reads the CSV and does all grouping and computing once, so reports only filter, sort and format.
+// Takes the CSV text and does all grouping and computing once, so reports only filter, sort and format.
 // Returns { lines, orders, trips, items }:
 //   lines  - one object per order line, with just the COLUMNS above as camelCase properties, plus allocation
 //   orders - Map of order number -> the order's summary, plus its order-level fields
 //   trips  - the trip rows: lines on one trip, or one order's lines not on a trip. An order split
 //            across two trips is in both, each with only its own lines.
 //   items  - Map of item number -> the item's summary, plus its item-level fields
-function loadOrders(file) {
-  const [header, ...rows] = parseCsv(fs.readFileSync(file, 'utf8'));
+function loadOrders(text) {
+  const [header, ...rows] = parseCsv(text);
   const idx = COLUMNS.map(c => {
     if (!header.includes(c)) throw new Error(`CSV is missing column: ${c}`);
     return header.indexOf(c);
@@ -202,6 +216,8 @@ const danger = text => styleText(['bgRed', 'white'], text);
 // but only when styleText would add color (so both schemes turn on and off together).
 const warning = text => styleText('white', text) === text ? text : `\x1b[48;5;208m\x1b[37m${text}\x1b[39m\x1b[49m`;
 const warnStatus = status => WARNING_STATUSES.includes(status) && warning;
+// Black on cyan: the flr-mtl tag (TEMPORARY).
+const cyan = text => styleText(['bgCyan', 'black'], text);
 
 // One table row: each column's text cut to its width and padded, 2 spaces apart.
 // A column's color(item) returns danger, warning or nothing; a color covers the whole cell width.
@@ -225,15 +241,18 @@ const fit = (rows, room, noun) => rows.length > room
   ? [...rows.slice(0, room - 1), `... ${rows.length - room + 1} more ${noun} not shown`] : rows;
 
 // The orders report: one row per trip row (see loadOrders). Widths add up to 236, past the usual 200.
-// Items, last, is as many of the row's items as fit (see itemsCell), tagged 144" (orange, added after sizing)
-// when any of the row's lines is a 144" item. Allocation is red when short, orange when split.
-// Line Statuses is orange when the row's own status (what --status filters on) is Holds.
+// Items, last, is as many of the row's items as fit (see itemsCell), after its tags (colored after sizing):
+// 144" (orange) when any of the row's lines is a 144" item, flr-mtl (cyan) when the row is flrMtl.
+// Allocation is red when short, orange when split.
+// Line Statuses is orange when the row's own status (what --holds and the other status flags filter on) is Holds.
 const TAG144 = '144"';
 const ITEMS_WIDTH = 34;
+// The tags that can start an Items cell, in order: [text, the row property that turns it on, its color].
+const ITEM_TAGS = [[TAG144, 'has144', warning], ['flr-mtl', 'flrMtl', cyan]];
 
-// As many of the row's items as fit, biggest dollars first, after the 144" tag, ending in "..." if any are left out.
+// As many of the row's items as fit, biggest dollars first, after its tags, ending in "..." if any are left out.
 function itemsCell(row, width) {
-  const tag = row.has144 ? TAG144 + ' ' : '';
+  const tag = ITEM_TAGS.filter(([, key]) => row[key]).map(([text]) => text + ' ').join('');
   let text = '';
   for (const [i, itemNo] of row.itemNos.entries()) {
     const more = text ? `${text} ${itemNo}` : itemNo;
@@ -271,18 +290,22 @@ function topDollars(rows, share = 0.8) {
   return sorted.slice(0, n);
 }
 
+// The orders report's counts line, over every row it covers (the page shows it too).
+const ordersTotals = trips =>
+  `${trips.length.toLocaleString()} rows: ${new Set(trips.flatMap(r => r.orderNumbers)).size.toLocaleString()} orders, ` +
+  `${trips.reduce((t, r) => t + r.lines.length, 0).toLocaleString()} lines, ${total(trips, 'cases').toLocaleString()} cases, ${money(total(trips, 'dollars'))}`;
+
 // Trip rows -> the orders page, at most `height` rows: totals over all the rows, then the rows, soonest ship date
 // first, then most dollars. Rows that don't fit are counted, not shown, but still included in the totals.
 function ordersPage(trips, height = HEIGHT) {
   const page = [
-    `Orders  ${trips.length.toLocaleString()} rows: ${new Set(trips.flatMap(r => r.orderNumbers)).size.toLocaleString()} orders, ` +
-      `${trips.reduce((t, r) => t + r.lines.length, 0).toLocaleString()} lines, ${total(trips, 'cases').toLocaleString()} cases, ${money(total(trips, 'dollars'))}`,
+    `Orders  ${ordersTotals(trips)}`,
     '',
     ...tableHeader(REPORT_COLUMNS),
   ];
   const rows = trips.toSorted(soonestFirst).map(r => {
     const row = r.orderNumbers.slice(0, 3).reduce(highlightId, tableRow(REPORT_COLUMNS, c => c.value(r), r));
-    return r.has144 ? row.replace(TAG144, warning(TAG144)) : row;
+    return ITEM_TAGS.reduce((line, [text, key, color]) => r[key] ? line.replace(text, color(text)) : line, row);
   });
   page.push(...fit(rows, Math.max(height - page.length, 1), 'rows'));
   return page.join('\n');
@@ -396,7 +419,8 @@ const lateRow = (channel, ls) => ({
   days: Object.fromEntries(LATE.map(c => [c, ls.filter(l => l.shipDateCategory === c).length])),
 });
 
-// The order sales channels are listed in (Adam's). Every one gets a row, even with nothing late.
+// The consumer sales channels, in the order they're listed in (Adam's). On the late page every one gets a row,
+// even with nothing late; --consumer picks just these.
 const CHANNEL_ORDER = ['HOME DEPOT-OK', 'HOME DEPOT.COM-OK', 'LOWES-BR', 'LOWES-NO', 'LOWES-OK', 'MENARDS-OK',
   'ACE HDW-OK', 'ORGILL-OK', 'DISTRIBUTORS&FIELD SALES-OK', 'ECOMMERCE-OK'];
 
@@ -443,108 +467,136 @@ function newestExport() {
   return files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
 }
 
-// Name filters: [option name, line property]. Match any part of any line on the row, ignoring case
-// ("depot" matches "HOME DEPOT.COM-OK").
+// Name filters: [option name, line property]. The only filters that take a value: they match any part of any
+// line on the row, ignoring case ("ace hdw" matches "ACE HDW-OK #1234").
 const FILTERS = [
-  ['channel', 'salesChannel'],
   ['customer', 'customer'],
   ['shipto', 'shipTo'],
 ];
 
-// Short names for --channel: "thd" is the same as typing "HOME DEPOT-OK", so it skips HOME DEPOT.COM-OK.
-const CHANNELS = { thd: 'HOME DEPOT-OK', fsd: 'DISTRIBUTORS&FIELD SALES-OK' };
-
-// Ship date filters: flag -> the export's Ship Date Categories it takes, as of when the export was run.
 const LATE = ['9+ Days Late', '4-8 Days Late', '1-3 Days Late'];
-const DATE_FILTERS = {
-  due: [...LATE, 'Today', 'Tomorrow'],
-  late: LATE,
-  '9plus': ['9+ Days Late'],
-  '4to8': ['4-8 Days Late'],
-  '1to3': ['1-3 Days Late'],
-  today: ['Today'],
-  tomorrow: ['Tomorrow'],
+
+// Tag filters: flags that take no value, in groups. flags: flag -> what it picks. Flags in a group stack
+// (--today --tomorrow is either day); different groups must all match. A group tests either lines (line: a row
+// matches if any of its lines does, and `ovh shortages` can pick lines with it) or whole rows (row).
+const TAGS = {
+  // The export's Ship Date Category, as of when it was run.
+  date: {
+    flags: {
+      due: [...LATE, 'Today', 'Tomorrow'],
+      late: LATE,
+      '9plus': ['9+ Days Late'],
+      '4to8': ['4-8 Days Late'],
+      '1to3': ['1-3 Days Late'],
+      today: ['Today'],
+      tomorrow: ['Tomorrow'],
+    },
+    line: (l, categories) => categories.includes(l.shipDateCategory),
+  },
+  // Only the ten consumer sales channels, exactly. A group of its own, so it narrows the channel flags instead of
+  // adding to them: --consumer --thd is just Home Depot.
+  consumer: {
+    flags: { consumer: CHANNEL_ORDER },
+    line: (l, channels) => channels.includes(l.salesChannel),
+  },
+  // What the Sales Channel starts with: --thd is HOME DEPOT-OK only, --lowes is any LOWES-. Other channels
+  // (UNKNOWN-OK, CHEMICAL-OK and the like) have no flag of their own.
+  channel: {
+    flags: {
+      thd: 'HOME DEPOT-OK',
+      '.com': 'HOME DEPOT.COM-OK',
+      lowes: 'LOWES',
+      menards: 'MENARDS-OK',
+      ace: 'ACE HDW-OK',
+      orgill: 'ORGILL-OK',
+      fsd: 'DISTRIBUTORS&FIELD SALES-OK',
+      ecom: 'ECOMMERCE-OK',
+    },
+    line: (l, channel) => l.salesChannel.startsWith(channel),
+  },
+  allocation: {
+    flags: { alloc: 'alloc', split: 'split', short: 'short' },
+    row: (r, allocation) => r.allocation === allocation,
+  },
+  // The row's status (see orderStatus).
+  status: {
+    flags: { released: 'Released', ready: 'Ready', picked: 'Picked', holds: 'Holds' },
+    row: (r, status) => r.status === status,
+  },
+  // From Shipping Category; a line with none has no mode.
+  mode: {
+    flags: Object.fromEntries(Object.values(MODES).map(mode => [mode.toLowerCase(), mode])), // tl: 'TL', ...
+    line: (l, mode) => MODES[l.shippingCategory] === mode,
+  },
 };
 
-// Allocation filters: flag -> the row's allocation it takes.
-const ALLOCATION_FILTERS = { alloc: 'alloc', split: 'split', short: 'short' };
+// The date flags `ovh shortages` takes, besides --consumer and the channel flags.
+const SHORTAGE_DATES = ['due', 'late', 'today', 'tomorrow'];
 
-// A filter's values. Repeating the option and comma lists both stack: --mode tl --mode ltl is --mode tl,ltl.
-const list = (v, separator = ',') => (Array.isArray(v) ? v : v ? [v] : [])
-  .flatMap(one => one.split(separator)).map(one => one.trim()).filter(Boolean);
-// The same for filters whose values are single words (--mode, --status): the ovh shim turns an unquoted
-// "ltl,parcel" into the one argument "ltl parcel", so spaces separate those values too.
-const words = v => list(v, /[, 	]+/);
-
-// The Ship Date Categories the date flags given take, e.g. { today: true, tomorrow: true } -> ['Today', 'Tomorrow'].
-const dateCategories = filters => Object.keys(DATE_FILTERS).filter(flag => filters[flag]).flatMap(flag => DATE_FILTERS[flag]);
+// A name filter's values. Repeating the option and a comma list both stack: --shipto a --shipto b is --shipto a,b.
+const list = v => (v ?? []).flatMap(one => one.split(',')).map(one => one.trim()).filter(Boolean);
 // True if text contains part, ignoring case.
 const contains = (text, part) => text.toUpperCase().includes(part.toUpperCase());
-// What a name filter looks for, with --channel short names expanded: 'thd' -> 'HOME DEPOT-OK'.
-const filterValues = (name, filters) => list(filters[name])
-  .map(want => name === 'channel' ? CHANNELS[want.toLowerCase()] ?? want : want);
+// The tag groups given, each with what its flags picked: { today: true, lowes: true } -> [[date, [['Today']]], [channel, ['LOWES']]].
+const tagsGiven = filters => Object.values(TAGS)
+  .map(group => [group, Object.keys(group.flags).filter(flag => filters[flag]).map(flag => group.flags[flag])])
+  .filter(([, picked]) => picked.length);
 
-// True if one line matches the name filters and ship date flags given, e.g. { channel: 'depot', today: true }.
-function lineMatches(line, filters) {
-  const categories = dateCategories(filters);
-  return FILTERS.every(([name, key]) => {
-    const wants = filterValues(name, filters);
-    return !wants.length || wants.some(want => contains(line[key], want));
-  }) && (!categories.length || categories.includes(line.shipDateCategory));
-}
-
-// True if a trip row matches every filter given, e.g. { channel: 'lowes', status: 'holds', today: true }.
-// status: the row's status, exactly (ignoring case). Date flags stack: --today --tomorrow is either day;
-// a row matches if any of its lines is in one of the flags' categories. Allocation flags stack the same way,
-// on the row's allocation. 144: only rows with a 144" item. mode: a list, e.g. ['tl', 'ltl']; a row matches if
-// any of its lines has one of them.
-function rowMatches(row, filters) {
-  const categories = dateCategories(filters);
-  const allocations = Object.keys(ALLOCATION_FILTERS).filter(flag => filters[flag]).map(flag => ALLOCATION_FILTERS[flag]);
-  const statuses = words(filters.status), modes = words(filters.mode);
-  return FILTERS.every(([name, key]) => {
-    const wants = filterValues(name, filters);
-    return !wants.length || row.lines.some(l => wants.some(want => contains(l[key], want)));
+// True if the lines match every name filter and line tag group given, each by at least one line (not always the
+// same one), e.g. { customer: ['ace'], today: true }.
+const linesMatch = (lines, filters) =>
+  FILTERS.every(([name, key]) => {
+    const wants = list(filters[name]);
+    return !wants.length || lines.some(l => wants.some(want => contains(l[key], want)));
   })
-    && (!statuses.length || statuses.some(want => want.toUpperCase() === row.status.toUpperCase()))
-    && (!categories.length || categories.some(c => row.shipDateCategories.has(c)))
-    && (!allocations.length || allocations.includes(row.allocation))
-    && (!filters['144'] || row.has144)
-    && (!modes.length || [...row.modes].some(m => modes.some(want => want.toUpperCase() === m.toUpperCase())));
-}
+  && tagsGiven(filters).every(([group, picked]) => !group.line || lines.some(l => picked.some(p => group.line(l, p))));
 
-module.exports = { loadOrders, rowMatches, topDollars, ordersPage, orderPage, shortagesPage, shortageItems, latePage, lateChannels, toCsv };
+// True if one line matches the name filters and line tag flags given (`ovh shortages` picks lines).
+const lineMatches = (line, filters) => linesMatch([line], filters);
 
-const USAGE = `Usage: ovh orders [--due] [--late] [--9plus] [--4to8] [--1to3] [--today] [--tomorrow] [--alloc] [--split] [--short] [--144] [--dollars] [--status holds] [--mode tl,ltl] [--channel "lowes,menards"] [--customer "ace hdw"] [--shipto morrow] [--file file.csv] [--csv out.csv]
+// True if a trip row matches every filter given, e.g. { lowes: true, holds: true, today: true }: the name and
+// line filters by any of its lines, the row tags by the row itself. 144: only rows with a 144" item.
+// flr-mtl (TEMPORARY): only flrMtl rows.
+const rowMatches = (row, filters) => linesMatch(row.lines, filters)
+  && tagsGiven(filters).every(([group, picked]) => !group.row || picked.some(p => group.row(row, p)))
+  && (!filters['144'] || row.has144)
+  && (!filters['flr-mtl'] || row.flrMtl);
+
+if (typeof module !== 'undefined') // the browser loads this file as a plain script and just uses the names above
+  module.exports = { loadOrders, rowMatches, topDollars, ordersPage, orderPage, shortagesPage, shortageItems, latePage, lateChannels, toCsv };
+
+// "[--due] [--late] ..." for the usage lines.
+const flagList = flags => flags.map(flag => `[--${flag}]`).join(' ');
+const tagFlags = (...groups) => groups.flatMap(group => Object.keys(TAGS[group].flags));
+
+const USAGE = `Usage: ovh orders ${flagList(tagFlags('date', 'consumer', 'channel'))}
+                  ${flagList(tagFlags('allocation', 'status', 'mode'))} [--144] [--flr-mtl] [--dollars]
+                  [--customer "ace hdw"] [--shipto morrow] [--file file.csv] [--csv out.csv]
        ovh order 54013306 [--file file.csv] [--csv out.csv]
-       ovh shortages [--due] [--late] [--today] [--tomorrow] [--channel depot] [--file file.csv] [--csv out.csv]
+       ovh shortages ${flagList([...SHORTAGE_DATES, ...tagFlags('consumer', 'channel')])} [--file file.csv] [--csv out.csv]
        ovh late [--file file.csv] [--csv out.csv]`;
 
 // Every command takes these: the export to read, and where to write the report's whole table as CSV.
 const FILES = { file: { type: 'string' }, csv: { type: 'string' } };
 
 // The options each command accepts. Anything else is an error.
+const booleans = flags => Object.fromEntries(flags.map(flag => [flag, { type: 'boolean' }]));
 const COMMANDS = {
   orders: {
-    ...Object.fromEntries(FILTERS.map(([name]) => [name, { type: 'string', multiple: true }])),
-    status: { type: 'string', multiple: true },
-    mode: { type: 'string', multiple: true },
+    ...booleans(tagFlags(...Object.keys(TAGS))),
     144: { type: 'boolean' }, // rows with a 144" item, the ones the report tags
+    'flr-mtl': { type: 'boolean' }, // TEMPORARY: rows the report tags flr-mtl
     dollars: { type: 'boolean' }, // just the rows making up the top 80% of dollars
-    ...Object.fromEntries([...Object.keys(DATE_FILTERS), ...Object.keys(ALLOCATION_FILTERS)].map(flag => [flag, { type: 'boolean' }])),
+    ...Object.fromEntries(FILTERS.map(([name]) => [name, { type: 'string', multiple: true }])),
     ...FILES,
   },
   order: { ...FILES },
-  shortages: {
-    ...Object.fromEntries(['due', 'late', 'today', 'tomorrow'].map(flag => [flag, { type: 'boolean' }])),
-    channel: { type: 'string', multiple: true },
-    ...FILES,
-  },
+  shortages: { ...booleans([...SHORTAGE_DATES, ...tagFlags('consumer', 'channel')]), ...FILES },
   late: { ...FILES },
 };
 
 // ovh <command> [options]   ("ovh" is set up by package.json + npm link)
-if (require.main === module) {
+if (node && require.main === module) {
   const [command, ...args] = process.argv.slice(2);
   let opts, positionals;
   try {
@@ -552,16 +604,13 @@ if (require.main === module) {
     // Only "order" takes a bare value: the order number.
     ({ values: opts, positionals } = parseArgs({ args, options: COMMANDS[command], allowPositionals: command === 'order' }));
     if (command === 'order' && positionals.length !== 1) throw new Error('Give exactly one order number');
-    for (const mode of words(opts.mode)) {
-      if (!Object.values(MODES).some(m => m.toUpperCase() === mode.toUpperCase())) throw new Error(`Unknown mode '${mode}': use TL, LTL or Parcel`);
-    }
   } catch (e) {
     console.error(`${e.message}\n${USAGE}`);
     process.exit(1);
   }
   const file = opts.file ?? newestExport();
   console.error(`Loading ${file}`);
-  const data = loadOrders(file);
+  const data = loadOrders(fs.readFileSync(file, 'utf8'));
   // One-page reports. In a console, fill the screen: its rows less the "Loading" line above and the prompt below,
   // with blank rows after the page. Saved to a file: HEIGHT rows at most, no blank rows.
   const tty = process.stdout.isTTY;

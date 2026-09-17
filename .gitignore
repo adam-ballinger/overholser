@@ -1,2 +1,5 @@
 # Exports and report CSVs hold real customer data. Never commit them.
 *.csv
+
+# Built by bundle.js from the files here; rebuild it rather than commit it.
+sharable-ovh.html
