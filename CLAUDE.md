@@ -14,13 +14,24 @@ Leanness is a core principle here, keep code conventional but as tiny as possibl
 - **Ask before adding a dependency**, a dev tool, or a config file.
 - **Prefer deleting.** A change that removes code is worth proposing.
 
-## Git
+## Git and versions
 
-Commit straight to `main`. No feature branches, no pull requests - this
-history is one straight line on purpose. Branch only when I ask by name.
+Commit straight to `main`. No pull requests - this history is one straight
+line on purpose.
 
-**Never commit unprompted.** Finish the work, say which files changed, stop.
-A dirty working tree is the normal resting state, not something to tidy up.
+**Branching is your call, and the answer is almost always no.** I won't know
+when to ask, so don't wait for me. Branch only when the work would be hard to
+undo, and say plainly what it's for.
+
+**You decide when to commit, when to push, and how far to raise the version
+in `package.json`** (patch, minor, major). Judge it at the time, do it when
+you're confident it's right, and tell me afterwards. Don't ask first.
+
+I'll tell you when I'm done with a work session.
+
+**Don't commit, push or raise the version more often than the work deserves.**
+A commit per small edit, or a version number raised for its own sake, is
+wasted. A dirty working tree is a normal resting state.
 
 ## Project info
 

@@ -2,4 +2,4 @@
 *.csv
 
 # Built by bundle.js from the files here; rebuild it rather than commit it.
-sharable-ovh.html
+ovh v*.html

@@ -106,9 +106,9 @@ table when you copy it.
 
 ## Looking at one trip
 
-The **trip** tab shows everything about one trip. Click any trip or order
+The **inspect** tab shows everything about one trip. Click any trip or order
 number on the page - in the report, or in a trip's own list of orders - or
-type a trip or order number in the trip tab's bar and press Enter.
+type a trip or order number in the inspect tab's bar and press Enter.
 
 Looking up an order shows the trip it's on, headed "Order 54001840 on Trip
 7989649"; click that trip number to see the whole trip. An order split across
@@ -147,7 +147,7 @@ each; Ctrl+Enter takes the first, so click the other one's button.
   Released, and at least one is still Entered, Booked or Awaiting.
 - **Orange 144"** at the start of Items - the row holds a 144" item.
 - **Cyan flr-mtl** at the start of Items - the row has a Home Depot line for a
-  Flooring item (see `--flr-mtl`). In the trip tab both tags start the item's
+  Flooring item (see `--flr-mtl`). In the inspect tab both tags start the item's
   Description instead, so they mark the one item they belong to.
 
 ## Allocation

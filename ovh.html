@@ -29,7 +29,7 @@
   #tabs button:hover { color: #1b1b19 }
   #tabs button.on { color: #1b1b19; border-bottom-color: #1b1b19 }
 
-  /* Orders tab */
+  /* Search tab */
   .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px }
   #filename { color: #55534d }
   /* The loading bar: "████████░░░░░░░░░░░░  40% reading". */
@@ -52,7 +52,7 @@
   .stats { display: flex; flex-wrap: wrap; gap: 2px 24px; margin: 18px 0 14px; color: #55534d }
   .stats .headline { flex-basis: 100%; color: #1b1b19 }
   .stats b { font-weight: normal; color: #94918a }
-  /* A trip (or an order not on one) in the report: click it to see it in the trip tab. */
+  /* A trip (or an order not on one) in the report: click it to see it in the inspect tab. */
   a[data-find] { cursor: pointer; color: inherit; text-decoration: underline dotted #94918a }
   a[data-find]:hover { text-decoration-style: solid }
   /* Columns keep the report's proportions but are shares of the window, so it always fits. */
@@ -62,7 +62,7 @@
   /* One line per row, cut with an ellipsis the way the report cuts to its column width. */
   th, td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
   tr:hover td:not(.group) { background: #efece5 }
-  /* Divider above each ship date group (late, today, tomorrow, future) and each trip tab table. */
+  /* Divider above each ship date group (late, today, tomorrow, future) and each inspect tab table. */
   .group { padding: 14px 0 3px; border-bottom: 1px solid #b5b1a8; color: #94918a }
   .group b { color: #1b1b19; letter-spacing: 1px }
   .group.late, .group.late b { color: #b3261e; border-bottom-color: #b3261e }
@@ -77,10 +77,10 @@
   @media (max-width: 900px) { .ship-method, .items { display: none } }
   @media (max-width: 600px) {
     .ship-to, .trip, .orders, .lines, .cases, .line-statuses { display: none }
-    .po, .delivery, .customer, .hold, .pieces, .onhand { display: none }  /* the trip tab's tables */
+    .po, .delivery, .customer, .hold, .pieces, .onhand { display: none }  /* the inspect tab's tables */
   }
 
-  /* Trip tab: each trip under a heading, with its Copy for wave button at the right, tables a little apart. */
+  /* Inspect tab: each trip under a heading, with its Copy for wave button at the right, tables a little apart. */
   .trip-detail h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
                     margin: 22px 0 0; font-size: 1.3em }
   .trip-detail h2 .muted { font-weight: normal; color: #94918a }
@@ -109,11 +109,12 @@
 <div class="brand"><b>overholser</b><br>open orders, sorted<br><span id="version"></span></div>
 </header>
 <!-- The tabs read as commands, like the filter bar: one word each, with the longer wording in the tooltip. -->
-<nav id="tabs"><button data-tab="orders-tab" class="on" title="The whole open orders export, filtered">orders</button><button
-  data-tab="trip-tab" title="One trip, or one order, in full">trip</button><button
+<nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered">search</button><button
+  data-tab="inspect-tab" title="One trip, or one order, in full">inspect</button><button
+  data-tab="build-tab" title="Nothing here yet">build</button><button
   data-tab="help-tab" title="How to use this page">help</button></nav>
 <main>
-<section id="orders-tab">
+<section id="search-tab">
   <div class="tools">
     <label class="button">Open CSV<input type="file" id="csv" accept=".csv" hidden></label>
     <span id="progress"></span>
@@ -132,12 +133,14 @@
   </div>
   <table id="report"></table>
 </section>
-<section id="trip-tab" hidden>
+<section id="inspect-tab" hidden>
   <div class="bar"><span>trip or order &gt;</span><input id="tripNumber" autocomplete="off" spellcheck="false"
-    placeholder="a trip or order number; Enter shows it. Or click any number in orders"></div>
+    placeholder="a trip or order number; Enter shows it. Or click any number in search"></div>
   <div id="tripMessage" class="message"></div>
   <div id="tripView"></div>
 </section>
+<section id="build-tab" hidden></section>
+
 <section id="help-tab" class="help" hidden></section>
 </main>
 
@@ -145,7 +148,7 @@
 <script>
 // The page: tabs, the orders report, the help. All the loading, allocating and filtering is ovh.js's,
 // loaded above as a plain script: everything it defines at the top level is a name this script can use.
-// What bundle.js puts in for sharable-ovh.html, since the page can't read files itself:
+// What bundle.js puts in for the built "ovh v<version>.html", since the page can't read files itself:
 // { version } from package.json and { help } from HELP.md.
 const BUNDLE = null;
 version.textContent = BUNDLE ? `v${BUNDLE.version}` : 'dev, not bundled';
@@ -157,7 +160,7 @@ function showTab(tab) {
 }
 tabs.addEventListener('click', e => e.target.dataset.tab && showTab(e.target.dataset.tab));
 
-// ---- Orders tab ----
+// ---- Search tab ----
 
 let data = null;   // the export's report rows (loadOrders), once one is picked
 let rows = [];     // the rows the flags picked last, in report order - what the stats and Copy table cover
@@ -182,7 +185,7 @@ const esc = text => text.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '
 // One cell. title shows the whole value when the column is too narrow for it. A color marks just the text, not
 // the whole cell; in Items it's only the tags at the front (144", flr-mtl), each in its own color. The columns
 // (and ITEM_TAGS) in ovh.js name the color class. The column's find names the trip and order numbers in the
-// cell: each one becomes a link that looks it up in the trip tab (the cell holds them space-separated).
+// cell: each one becomes a link that looks it up in the inspect tab (the cell holds them space-separated).
 function td(c, r) {
   const text = String(c.value(r));
   const classes = [slug(c), c.right && 'right', c.id && 'id'].filter(Boolean).join(' ');
@@ -377,12 +380,12 @@ flags.addEventListener('keydown', e => {
   if (e.key === 'Escape') clear.click();
 });
 // A trip or order number clicked anywhere on the page - the report, or one trip's orders - looks it up in the
-// trip tab. One listener over every tab, since the tables are redrawn.
+// inspect tab. One listener over every tab, since the tables are redrawn.
 document.querySelector('main').addEventListener('click', e => {
   const find = e.target.closest('[data-find]')?.dataset.find;
   if (!find) return;
   tripNumber.value = find;
-  showTab('trip-tab');
+  showTab('inspect-tab');
   showTrip();
 });
 clear.addEventListener('click', () => { flags.value = ''; flags.focus(); render(); });
@@ -409,7 +412,7 @@ function emailTable() {
   const table = document.createElement('table');
   table.innerHTML = headingRow(COLUMNS_COPY) + tableRows(COLUMNS_COPY, rows);
   table.setAttribute('style', 'border-collapse:collapse;font-family:Consolas,monospace;font-size:12px');
-  // The trip tab's links mean nothing in an email: keep the number, drop the link.
+  // The inspect tab's links mean nothing in an email: keep the number, drop the link.
   for (const link of table.querySelectorAll('a')) link.replaceWith(...link.childNodes);
   for (const cell of table.querySelectorAll('th, td, span')) {
     cell.setAttribute('style', inlineStyle(cell));
@@ -469,9 +472,9 @@ ${emailTable()}
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 });
 
-// ---- Trip tab ----
+// ---- Inspect tab ----
 
-let shown = [];    // the rows the trip tab is showing, what its Copy for wave buttons copy
+let shown = [];    // the rows the inspect tab is showing, what its Copy for wave buttons copy
 
 // Everything about one report row: a heading, what it adds up to, then its orders and its items, the items
 // with stock problems first. order: the order number looked up, when the row came from one - the heading
@@ -524,7 +527,7 @@ function showTrip() {
   tripMessage.textContent = '';
   tripView.innerHTML = '';
   if (!number) return;
-  if (!data) { tripMessage.textContent = 'Open an export in the orders tab first'; return; }
+  if (!data) { tripMessage.textContent = 'Open an export in the search tab first'; return; }
   const trip = data.filter(r => r.trip === number);
   const found = trip.length ? trip : data.filter(r => r.orderNumbers.includes(number)).toSorted(soonestFirst);
   if (!found.length) { tripMessage.textContent = `No trip or order ${number} in this export`; return; }
@@ -548,11 +551,11 @@ tripView.addEventListener('click', e => {
   const button = e.target.closest('[data-wave]');
   if (button) copyWave(button);
 });
-// Ctrl+Enter copies wherever you are on the trip tab, since Enter in the bar has just looked the trip up. An
+// Ctrl+Enter copies wherever you are on the inspect tab, since Enter in the bar has just looked the trip up. An
 // order on more than one trip takes the first, the soonest; its other trips need their own button.
 document.addEventListener('keydown', e => {
   const button = tripView.querySelector('[data-wave]');
-  if (e.key === 'Enter' && e.ctrlKey && button && !document.getElementById('trip-tab').hidden) copyWave(button);
+  if (e.key === 'Enter' && e.ctrlKey && button && !document.getElementById('inspect-tab').hidden) copyWave(button);
 });
 
 // ---- Help tab ----
@@ -591,7 +594,7 @@ function markdown(text) {
 }
 
 document.getElementById('help-tab').innerHTML = BUNDLE ? markdown(BUNDLE.help)
-  : '<p>The help shows here in sharable-ovh.html. Build that with <code>node bundle.js</code>.</p>';
+  : '<p>The help shows here in the built "ovh v<version>.html". Build that with <code>node bundle.js</code>.</p>';
 </script>
 </body>
 </html>

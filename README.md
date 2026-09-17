@@ -16,7 +16,7 @@ Plain JavaScript, no npm packages. Three files do the work:
 Open `ovh.html` in a browser; no server, no setup. It has tabs, one per tool;
 more will come. Their names read as commands, like the filter bar: one word
 each, with the longer wording in the tab's tooltip.
-- **orders** is the orders report. Pick an export (a text bar beside the button
+- **search** is the orders report. Pick an export (a text bar beside the button
   shows the load: real progress while the file is read, then a step each for
   `loadOrders` and drawing, since those run in one go; the page waits a short
   timer, not a frame, before each so the bar shows and a background tab doesn't
@@ -37,7 +37,7 @@ each, with the longer wording in the tab's tooltip.
   divider only when its group changes, and each divider still counts the whole
   group. A `drawing` count drops a late chunk whose filters the bar has already
   moved past.
-- **trip** shows one report row in full: type a trip or order number and
+- **inspect** shows one report row in full: type a trip or order number and
   Enter, or click one. Every trip and order number the page shows is a link
   here (a column's `find` names the numbers in its cell, `td` links each one,
   and one listener over the tabs catches the click), so the orders report and
@@ -66,6 +66,7 @@ each, with the longer wording in the tab's tooltip.
   export redraws it. Table titles sit above the tables, not in a row: a fixed
   layout table takes its column widths from its first row. Phones drop PO,
   Delivery, Customer, Hold, Pieces and Onhand.
+- **build** is empty: a tab waiting for the next tool.
 - **help** is `HELP.md`: plain-language instructions for the people using the
   page, not this file. Keep it current when what the page does changes.
 
@@ -85,14 +86,19 @@ Outlook, where a pasted copy loses its text formatting.
 
 The export is read in the browser and goes nowhere else.
 
-**To share it:** `node bundle.js` writes `sharable-ovh.html`, the same page
-with `ovh.js`, `HELP.md` and the `version` from `package.json` inside it: one
-file to send someone for testing, nothing to set up. The page header shows that
-version, so testers' feedback says which build they had.
+**To share it:** `node bundle.js` writes `ovh v0.2.0.html`, named for the
+`version` in `package.json`: the same page with `ovh.js`, `HELP.md` and that
+version inside it, one file to send someone for testing, nothing to set up.
+The page header shows the version too, so testers' feedback says which build
+they had, and a new version is a new file rather than one that quietly
+changed under the last one. `.gitignore` has `ovh v*.html`, so none of them
+land in the repo; the old ones are yours to keep or delete.
 
 **Versions:** every push to the repo raises the patch number in `package.json`
 (0.1.0 → 0.1.1), committed with that push. The minor number (0.1 → 0.2) goes
-up only when Adam asks. It is built, not edited, so run
+up when the work since the last one is a new tool, or something testers would
+notice. Claude judges which, raises it with the push and says so afterwards.
+It is built, not edited, so run
 `node bundle.js` again after changing `ovh.html`, `ovh.js` or `HELP.md`.
 `.gitignore` keeps it out of the repo, since it only copies files that are in
 it. The help and version are only in that built file, since `ovh.html` can't
@@ -132,7 +138,7 @@ The other plain flags (`OTHER_FLAGS`):
   one of Home Depot's 104 Flooring items (`FLR_MTL_ITEMS`, copied from
   "2026-09-12 Home Depot Item Category Master Reference.xlsx"). Those rows'
   Items cell starts with a cyan `flr-mtl` tag, after any 144" tag
-  (`ITEM_TAGS`, `itemTags`; the trip tab starts an item's Description with the
+  (`ITEM_TAGS`, `itemTags`; the inspect tab starts an item's Description with the
   same tags). It goes by the row's own lines, like 144": an order split
   across trips is tagged only on the trip holding its flooring line. The
   comment on `FLR_MTL_ITEMS` lists what to delete to take it out.
@@ -164,7 +170,7 @@ holds real customer data, so never copy it into this folder or commit it.
 **All grouping and computing happens once, at load.** `loadOrders` takes the
 CSV text and returns the report rows, each with its lines (and their
 allocation), orders and items (`rowOrders`, `rowItems`: each a summary of just
-its lines on the row, for the trip tab), order and item numbers, ship to /
+its lines on the row, for the inspect tab), order and item numbers, ship to /
 ship method, line status counts, dates, totals, status, allocation and tags.
 The page only filters, sorts and formats what's already in memory.
 
@@ -178,7 +184,7 @@ Future.
   only, not the whole cell. A column's `color(row)` in `REPORT_COLUMNS` names
   the CSS class (`'danger'`, `'warning'`); `ITEM_TAGS` names each tag's class,
   and a column with `tags: true` puts the row's tags in front of its value
-  (the report's Items, the trip tab's Description).
+  (the report's Items, the inspect tab's Description).
   - Danger: a late ship date, and a short Alloc.
   - Warning: a split Alloc, Line Statuses when the row's status is Holds, and
     the `144"` tag that starts the Items cell of a row holding a 144" item.

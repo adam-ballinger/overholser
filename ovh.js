@@ -141,7 +141,7 @@ const summarize = lines => ({
 // For sorting rows: soonest ship date first, then most dollars first.
 const soonestFirst = (a, b) => a.shipDate - b.shipDate || b.dollars - a.dollars;
 
-// A row's orders, each with just its lines on the row, soonest first: the trip tab's Orders table.
+// A row's orders, each with just its lines on the row, soonest first: the inspect tab's Orders table.
 const rowOrders = lines => [...Map.groupBy(lines, l => l.orderNumber).values()].map(ls => ({
   ...summarize(ls),
   orderNumber: ls[0].orderNumber,
@@ -152,7 +152,7 @@ const rowOrders = lines => [...Map.groupBy(lines, l => l.orderNumber).values()].
   onHold: ls.some(l => l.onHold === 'OnHold'),
 })).sort(soonestFirst);
 
-// A row's items, biggest dollars first: the trip tab's Items table. onhand is Distribution Onhand, the same on
+// A row's items, biggest dollars first: the inspect tab's Items table. onhand is Distribution Onhand, the same on
 // every line of an item.
 const rowItems = lines => [...Map.groupBy(lines, l => l.itemNo).values()].map(ls => ({
   ...summarize(ls),
@@ -223,7 +223,7 @@ function itemsCell(row, width) {
   }
   return tag + text;
 }
-// Columns the report and the trip tab's tables share.
+// Columns the report and the inspect tab's tables share.
 const ALLOC_COLUMN = { heading: 'Alloc', width: 5, value: r => r.allocation,
   color: r => ({ short: 'danger', split: 'warning' })[r.allocation] };
 const TOTAL_COLUMNS = [
@@ -234,7 +234,7 @@ const TOTAL_COLUMNS = [
 const STATUSES_COLUMN = { heading: 'Line Statuses', width: 34, value: r => r.lineStatuses, color: r => warnStatus(r.status) };
 const SHIP_DATE_COLUMN = { heading: 'Ship Date', width: 10, value: r => mdy(r.shipDate), color: r => r.late && 'danger' };
 
-// id: shown in the order number color. find: the numbers in the cell the page links to the trip tab, where
+// id: shown in the order number color. find: the numbers in the cell the page links to the inspect tab, where
 // they're looked up (see td in ovh.html); every trip and order number the page shows is one.
 const REPORT_COLUMNS = [
   { heading: 'Trip', width: 7, find: r => [r.trip], value: r => r.trip },
@@ -251,7 +251,7 @@ const REPORT_COLUMNS = [
   { heading: 'Items', width: ITEMS_WIDTH, tags: true, value: r => itemsCell(r, ITEMS_WIDTH) },
 ];
 
-// The trip tab's tables: one row per order on the trip, and one per item. Hold is the order's On Hold flag.
+// The inspect tab's tables: one row per order on the trip, and one per item. Hold is the order's On Hold flag.
 const TRIP_ORDER_COLUMNS = [
   { heading: 'Order', width: 9, id: true, find: o => [o.orderNumber], value: o => o.orderNumber },
   { heading: 'PO', width: 11, value: o => o.poNumber },
