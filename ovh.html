@@ -36,19 +36,25 @@
   #progress { color: #94918a }
   #progress b { font-weight: normal; color: #b25a00 }
   #progress i { font-style: normal; color: #d3d0c9 }
-  #clear { margin-left: auto }                           /* Clear, Copy and Save sit at the right */
-  /* The filter bar reads as a prompt: "> --today --thd". */
-  .bar { display: flex; align-items: center; gap: 8px; margin-top: 10px; border-bottom: 1px solid #c9c6bf }
+  .table-tools { justify-content: flex-end; margin-bottom: 6px }  /* Copy and Save, at the right above the table */
+  /* The filter bar reads as a prompt: "> --today --thd", with room around it to type in. */
+  .bar { display: flex; align-items: center; gap: 8px; margin: 18px 0; border-bottom: 1px solid #c9c6bf }
   .bar > span { color: #94918a }
-  #flags { flex: 1; min-width: 0; font: inherit; padding: 4px 0; border: 0; outline: none; background: none; color: inherit }
-  #message { color: #a4271c }
+  /* clear (esc) is a word at the end of the bar, not another box beside the boxes above it. */
+  #clear { padding: 0 0 2px; border: 0; background: none; color: #94918a }
+  #clear:hover { color: #1b1b19; background: none; text-decoration: underline }
+  .bar input { flex: 1; min-width: 0; font: inherit; padding: 4px 0; border: 0; outline: none; background: none; color: inherit }
+  .message { color: #a4271c }
   /* Every flag the report takes, a row of buttons per group. */
-  #tags { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px }
+  #tags { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 12px }
   #tags div { display: flex; flex-wrap: wrap; gap: 4px }
   #tags button { padding: 0 6px }
-  #stats { display: flex; flex-wrap: wrap; gap: 2px 24px; margin: 12px 0; color: #55534d }
-  #stats .headline { flex-basis: 100%; color: #1b1b19 }
-  #stats b { font-weight: normal; color: #94918a }
+  .stats { display: flex; flex-wrap: wrap; gap: 2px 24px; margin: 18px 0 14px; color: #55534d }
+  .stats .headline { flex-basis: 100%; color: #1b1b19 }
+  .stats b { font-weight: normal; color: #94918a }
+  /* A trip (or an order not on one) in the report: click it to see it in the trip tab. */
+  a[data-find] { cursor: pointer; color: inherit; text-decoration: underline dotted #94918a }
+  a[data-find]:hover { text-decoration-style: solid }
   /* Columns keep the report's proportions but are shares of the window, so it always fits. */
   table { width: 100%; table-layout: fixed; border-collapse: collapse }
   th { text-align: left; font-weight: 600; padding: 2px 8px 4px 0; border-bottom: 1px dashed #b5b1a8 }
@@ -56,12 +62,12 @@
   /* One line per row, cut with an ellipsis the way the report cuts to its column width. */
   th, td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
   tr:hover td:not(.group) { background: #efece5 }
-  /* Divider above each ship date group: late, today, tomorrow, future. */
-  td.group { padding: 14px 0 3px; border-bottom: 1px solid #b5b1a8; color: #94918a }
-  td.group b { color: #1b1b19; letter-spacing: 1px }
-  td.group.late, td.group.late b { color: #b3261e; border-bottom-color: #b3261e }
+  /* Divider above each ship date group (late, today, tomorrow, future) and each trip tab table. */
+  .group { padding: 14px 0 3px; border-bottom: 1px solid #b5b1a8; color: #94918a }
+  .group b { color: #1b1b19; letter-spacing: 1px }
+  .group.late, .group.late b { color: #b3261e; border-bottom-color: #b3261e }
   .right { text-align: right }
-  .id { color: #8a5a00 }                                 /* order numbers, yellow in the console */
+  .id { color: #8a5a00 }                                 /* order numbers */
   .danger { background: #b3261e; color: #fff }           /* late ship date, short allocation */
   .warning { background: #b25a00; color: #fff }          /* split allocation, Holds, the 144" tag */
   .cyan { background: #0e7c86; color: #fff }             /* the flr-mtl tag (temporary) */
@@ -71,7 +77,16 @@
   @media (max-width: 900px) { .ship-method, .items { display: none } }
   @media (max-width: 600px) {
     .ship-to, .trip, .orders, .lines, .cases, .line-statuses { display: none }
+    .po, .delivery, .customer, .hold, .pieces, .onhand { display: none }  /* the trip tab's tables */
   }
+
+  /* Trip tab: each trip under a heading, with its Copy for wave button at the right, tables a little apart. */
+  .trip-detail h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
+                    margin: 22px 0 0; font-size: 1.3em }
+  .trip-detail h2 .muted { font-weight: normal; color: #94918a }
+  /* font: inherit on buttons would take the heading's size and weight, so this one says its own. */
+  .wave { margin-left: auto; font-size: 13px; font-weight: normal }
+  .trip-detail table { margin-bottom: 6px }
 
   /* Help tab: kept to a readable width. */
   .help { max-width: 96ch; line-height: 1.6 }
@@ -93,23 +108,35 @@
      <span class="frame">└──●─●───────────●─●──┘ └●──●┘</span></pre>
 <div class="brand"><b>overholser</b><br>open orders, sorted<br><span id="version"></span></div>
 </header>
-<nav id="tabs"><button data-tab="orders-tab" class="on">orders</button><button data-tab="help-tab">help</button></nav>
+<!-- The tabs read as commands, like the filter bar: one word each, with the longer wording in the tooltip. -->
+<nav id="tabs"><button data-tab="orders-tab" class="on" title="The whole open orders export, filtered">orders</button><button
+  data-tab="trip-tab" title="One trip, or one order, in full">trip</button><button
+  data-tab="help-tab" title="How to use this page">help</button></nav>
 <main>
 <section id="orders-tab">
   <div class="tools">
     <label class="button">Open CSV<input type="file" id="csv" accept=".csv" hidden></label>
     <span id="progress"></span>
     <span id="filename"></span>
-    <button id="clear" title="Clear the filter line">Clear</button>
+  </div>
+  <!-- clear sits at the end of the line it empties, as plain text, and only while there is something to empty. -->
+  <div class="bar"><span>&gt;</span><input id="flags" autocomplete="off" spellcheck="false"
+    placeholder="type filters or click them below; Enter runs them"><button id="clear" hidden>clear (esc)</button></div>
+  <div id="message" class="message"></div>
+  <div id="tags"></div>
+  <div id="stats" class="stats">Pick an open orders export. It stays in this browser.</div>
+  <!-- Copy and Save act on the table, so they sit with it rather than up with Open CSV. -->
+  <div class="tools table-tools">
     <button id="copy">Copy table</button>
     <button id="save">Save table</button>
   </div>
-  <div class="bar"><span>&gt;</span><input id="flags" autocomplete="off" spellcheck="false"
-    placeholder="type filters or click them below; Enter runs them"></div>
-  <div id="message"></div>
-  <div id="tags"></div>
-  <div id="stats">Pick an open orders export. It stays in this browser.</div>
   <table id="report"></table>
+</section>
+<section id="trip-tab" hidden>
+  <div class="bar"><span>trip or order &gt;</span><input id="tripNumber" autocomplete="off" spellcheck="false"
+    placeholder="a trip or order number; Enter shows it. Or click any number in orders"></div>
+  <div id="tripMessage" class="message"></div>
+  <div id="tripView"></div>
 </section>
 <section id="help-tab" class="help" hidden></section>
 </main>
@@ -124,16 +151,15 @@ const BUNDLE = null;
 version.textContent = BUNDLE ? `v${BUNDLE.version}` : 'dev, not bundled';
 
 // Tabs: each button shows the section its data-tab names and hides the others.
-tabs.addEventListener('click', e => {
-  const tab = e.target.dataset.tab;
-  if (!tab) return;
-  for (const button of tabs.children) button.classList.toggle('on', button === e.target);
+function showTab(tab) {
+  for (const button of tabs.children) button.classList.toggle('on', button.dataset.tab === tab);
   for (const section of document.querySelectorAll('main > section')) section.hidden = section.id !== tab;
-});
+}
+tabs.addEventListener('click', e => e.target.dataset.tab && showTab(e.target.dataset.tab));
 
 // ---- Orders tab ----
 
-let data = null;   // the export, once one is picked
+let data = null;   // the export's report rows (loadOrders), once one is picked
 let rows = [];     // the rows the flags picked last, in report order - what the stats and Copy table cover
 let shownFlags = ''; // the filter line those rows came from (the bar may since hold a typo)
 
@@ -144,30 +170,41 @@ const COLUMNS_COPY = REPORT_COLUMNS.map(c => ['Order Numbers', 'Items'].includes
   ? { ...c, value: r => c.value(r).replace(/ \.\.\.$/, '…') } : c);
 // The page's columns: the same, but Items lists every item and the browser cuts the cell to fit the window.
 const COLUMNS_HTML = COLUMNS_COPY.map(c => c.heading === 'Items' ? { ...c, value: r => itemsCell(r, 999) } : c);
-// Dates, money and counts keep their exact width (plus a character for the gap); the wide text columns
-// share whatever the window has left, so the table always fits it and only they get cut short.
-const th = c => `<th class="${slug(c)}${c.right ? ' right' : ''}"${c.width <= 11 ? ` style="width:${c.width + 1}ch"` : ''}>${c.heading}</th>`;
-// What a column's color(row) means in HTML. Nothing decides a color twice: the columns still own the rules.
-const CLASSES = new Map([[danger, 'danger'], [warning, 'warning'], [cyan, 'cyan']]);
+// Columns of 13 characters or less (dates, money, counts, numbers) keep their exact width (plus a character for
+// the gap); the wide text columns share whatever the window has left, so the table always fits it and only they
+// get cut short.
+const th = c => `<th class="${slug(c)}${c.right ? ' right' : ''}"${c.width <= 13 ? ` style="width:${c.width + 1}ch"` : ''}>${c.heading}</th>`;
 
+const mark = (text, color) => color ? `<span class="${color}">${esc(text)}</span>` : esc(text);
 const slug = c => c.heading.toLowerCase().replace(/[^a-z]+/g, '-');
 const esc = text => text.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // One cell. title shows the whole value when the column is too narrow for it. A color marks just the text, not
-// the whole cell; in Items it's only the tags at the front (144", flr-mtl), each in its own color.
+// the whole cell; in Items it's only the tags at the front (144", flr-mtl), each in its own color. The columns
+// (and ITEM_TAGS) in ovh.js name the color class. The column's find names the trip and order numbers in the
+// cell: each one becomes a link that looks it up in the trip tab (the cell holds them space-separated).
 function td(c, r) {
   const text = String(c.value(r));
-  const classes = [slug(c), c.right && 'right', c.heading === 'Order Numbers' && 'id'].filter(Boolean).join(' ');
-  const color = CLASSES.get(c.color?.(r));
-  const tags = c.heading === 'Items' ? ITEM_TAGS.filter(([, key]) => r[key]) : [];
+  const classes = [slug(c), c.right && 'right', c.id && 'id'].filter(Boolean).join(' ');
+  const find = c.find?.(r).filter(Boolean) ?? [];
+  const color = c.color?.(r);
+  const tags = c.tags ? ITEM_TAGS.filter(([, key]) => r[key]) : [];
   const body = tags.length
-    ? tags.map(([tag, , tagColor]) => `<span class="${CLASSES.get(tagColor)}">${esc(tag)}</span> `).join('')
+    ? tags.map(([tag, , tagColor]) => `<span class="${tagColor}">${esc(tag)}</span> `).join('')
       + esc(tags.reduce((rest, [tag]) => rest.slice(tag.length + 1), text)) // what follows "144" flr-mtl "
-    : color ? `<span class="${color}">${esc(text)}</span>` : esc(text);
+    : find.length ? linkNumbers(esc(text), find)
+      : mark(text, color);
   return `<td class="${classes}" title="${esc(text)}">${body}</td>`;
 }
 
-// What the rows picked add up to, under the console's own counts line. Most of them are some of the rows,
+// Every number of find's in the (already escaped) text, as a link. The last one can end in the "…" that means
+// there are more than the cell shows, so the link takes the number and leaves the ellipsis beside it.
+const linkNumbers = (text, find) => text.split(' ').map(word => {
+  const number = word.replace(/…$/, '');
+  return find.includes(number) ? `<a data-find="${number}">${number}</a>${word.slice(number.length)}` : word;
+}).join(' ');
+
+// What the rows picked add up to, under the report's counts line. Most of them are some of the rows,
 // so they read the same way: "23 rows, $95,116.60".
 const worth = rs => `${count(rs.length, 'row')}, ${money(total(rs, 'dollars'))}`;
 // Allocation is counted in lines, not rows, since a split row holds both kinds: "412 lines short, $95,116.60".
@@ -191,16 +228,19 @@ const STATS = [
   }],
 ];
 
-// '--today --shipto "ace hdw"' -> { today: true, shipto: ['ace hdw'] }: the same object
-// util.parseArgs hands the CLI, from the same list of options, so the filters below behave the same.
+// Every flag the bar takes: the plain ones (tags and OTHER_FLAGS), and the name filters, which take a value.
+const TAG_GROUPS = Object.values(TAGS).map(group => Object.keys(group.flags));
+const PLAIN_FLAGS = [...TAG_GROUPS.flat(), ...OTHER_FLAGS];
+const NAMES = FILTERS.map(([name]) => name);
+
+// '--today --shipto "ace hdw"' -> { today: true, shipto: ['ace hdw'] }, what rowMatches takes.
 function parseFlags(text) {
   const opts = {};
   const tokens = text.match(/"[^"]*"|\S+/g) ?? [];
   for (let i = 0; i < tokens.length; i++) {
     const [, name, inline] = /^--([^=]+)(?:=(.*))?$/.exec(tokens[i]) ?? [];
-    const option = Object.hasOwn(COMMANDS.orders, name) && COMMANDS.orders[name];
-    if (!option || name === 'file' || name === 'csv') throw new Error(`Unknown option '${tokens[i]}'`);
-    if (option.type === 'boolean') opts[name] = true;
+    if (PLAIN_FLAGS.includes(name)) opts[name] = true;
+    else if (!NAMES.includes(name)) throw new Error(`Unknown option '${tokens[i]}'`);
     else {
       const value = inline ?? tokens[++i];
       if (value === undefined) throw new Error(`--${name} needs a value`);
@@ -211,20 +251,36 @@ function parseFlags(text) {
 }
 
 // The whole report: the counts line, a few numbers about the rows, then every row the flags pick, soonest
-// ship date first. No one page limit.
+// ship date first. No one page limit, but only the first screenful is drawn now and the rest a tick later
+// (see drawRows): building 1,500 rows takes a few hundred milliseconds, and clearing the filters asks for
+// every row at once.
 function render() {
   if (!data) return;
   let opts;
   try { opts = parseFlags(flags.value); } catch (e) { message.textContent = e.message; return; }
   message.textContent = '';
+  showClear();
   shownFlags = flags.value.trim().replace(/\s+/g, ' ');
-  const picked = data.trips.filter(r => rowMatches(r, opts));
+  const picked = data.filter(r => rowMatches(r, opts));
   rows = (opts.dollars ? topDollars(picked) : picked).toSorted(soonestFirst);
   stats.innerHTML = rows.length
     ? `<div class="headline">${ordersTotals(rows)}</div>`
       + STATS.map(([label, value]) => `<div>${label && `<b>${esc(label)}</b> `}${esc(value(rows))}</div>`).join('')
     : 'No matching rows';
-  report.innerHTML = rows.length ? tableRows(COLUMNS_HTML) : '';
+  drawRows();
+}
+
+// The report's rows: a screenful straight away, then the rest once the browser has drawn those. drawing counts
+// the draws, so rows from a filter the bar has moved on from never land in the table.
+const FIRST_ROWS = 150;
+let drawing = 0;
+function drawRows() {
+  const mine = ++drawing;
+  report.innerHTML = rows.length ? headingRow(COLUMNS_HTML) + tableRows(COLUMNS_HTML, rows.slice(0, FIRST_ROWS)) : '';
+  if (rows.length <= FIRST_ROWS) return;
+  setTimeout(() => {
+    if (mine === drawing) report.insertAdjacentHTML('beforeend', tableRows(COLUMNS_HTML, rows.slice(FIRST_ROWS), FIRST_ROWS));
+  });
 }
 
 // A row's ship date group, from the Ship Date Category of its earliest line (as of when the export was run).
@@ -234,26 +290,34 @@ const dateGroup = r => {
   return category.endsWith('Late') ? 'late' : category === 'Today' ? 'today' : category === 'Tomorrow' ? 'tomorrow' : 'future';
 };
 
-// The headings row, then the picked rows as HTML, each ship date group under a divider row that says what it
-// holds: "LATE  23 rows, $393,658.52".
-const tableRows = columns => `<tr>${columns.map(th).join('')}</tr>`
-  + [...Map.groupBy(rows, dateGroup)].map(([group, rs]) =>
-    `<tr><td class="group ${group}" colspan="${columns.length}"><b>${group.toUpperCase()}</b>&nbsp; ${worth(rs)}</td></tr>`
-    + rs.map(r => `<tr>${columns.map(c => td(c, r)).join('')}</tr>`).join('')).join('');
+const headingRow = columns => `<tr>${columns.map(th).join('')}</tr>`;
+// Rows of the report as HTML, each ship date group opened by a divider row that says what the whole group
+// holds: "LATE  23 rows, $393,658.52". rs is all of `rows`, or a run of it starting at `from`, so a chunk
+// drawn later carries on from the group the one before it ended in.
+function tableRows(columns, rs, from = 0) {
+  const groups = Map.groupBy(rows, dateGroup);
+  return rs.map((r, i) => {
+    const group = dateGroup(r);
+    const opens = from + i === 0 || group !== dateGroup(rows[from + i - 1]);
+    return (opens ? `<tr><td class="group ${group}" colspan="${columns.length}">${groupTitle(group, worth(groups.get(group)))}</td></tr>` : '')
+      + bodyRow(columns, r);
+  }).join('');
+}
+// What a divider says: "<b>LATE</b>  23 rows, $393,658.52".
+const groupTitle = (title, text) => `<b>${esc(title.toUpperCase())}</b>&nbsp; ${esc(text)}`;
+const bodyRow = (columns, r) => `<tr>${columns.map(c => td(c, r)).join('')}</tr>`;
+const bodyRows = (columns, rs) => rs.map(r => bodyRow(columns, r)).join('');
 
 // Every flag the report takes, as buttons that type themselves into the bar: a row for each tag group (ship
 // dates, channels, allocation, status, mode), the other plain flags, then the two that take a name. The lists
 // are ovh.js's own, so a new flag turns up here on its own.
-const NAMES = FILTERS.map(([name]) => name);
-const GROUPS = Object.values(TAGS).map(group => Object.keys(group.flags));
-GROUPS.push(Object.keys(COMMANDS.orders).filter(n => ![...GROUPS.flat(), ...NAMES, 'file', 'csv'].includes(n)), NAMES);
-tags.innerHTML = GROUPS.map(group =>
+tags.innerHTML = [...TAG_GROUPS, OTHER_FLAGS, NAMES].map(group =>
   `<div>${group.map(n => `<button data-flag="${n}">--${n}</button>`).join('')}</div>`).join('');
 
 tags.addEventListener('click', e => {
   const flag = e.target.dataset.flag;
   if (!flag) return;
-  const takesValue = COMMANDS.orders[flag].type === 'string';
+  const takesValue = NAMES.includes(flag);
   const parts = flags.value.split(/\s+/).filter(Boolean);
   const at = parts.indexOf(`--${flag}`);
   // Clicking a flag that's already on the line takes it off again. One that needs a value waits for it.
@@ -261,6 +325,7 @@ tags.addEventListener('click', e => {
   else parts.push(`--${flag}`);
   flags.value = parts.join(' ') + (takesValue ? ' ' : '');
   flags.focus();
+  showClear();
   if (!takesValue) render();
 });
 
@@ -301,12 +366,29 @@ csv.addEventListener('change', async () => {
     await paint();
   } catch (e) { data = null; progress.textContent = ''; message.textContent = e.message; return; }
   render();
+  showTrip();
   showProgress(1, `done in ${((performance.now() - start) / 1000).toFixed(1)}s`);
   progressTimer = setTimeout(() => progress.textContent = '', 4000);
   flags.focus();
 });
-flags.addEventListener('keydown', e => { if (e.key === 'Enter') render(); });
+// Enter runs the line, Esc empties it - the same as the Clear button beside it.
+flags.addEventListener('keydown', e => {
+  if (e.key === 'Enter') render();
+  if (e.key === 'Escape') clear.click();
+});
+// A trip or order number clicked anywhere on the page - the report, or one trip's orders - looks it up in the
+// trip tab. One listener over every tab, since the tables are redrawn.
+document.querySelector('main').addEventListener('click', e => {
+  const find = e.target.closest('[data-find]')?.dataset.find;
+  if (!find) return;
+  tripNumber.value = find;
+  showTab('trip-tab');
+  showTrip();
+});
 clear.addEventListener('click', () => { flags.value = ''; flags.focus(); render(); });
+// clear (esc) only shows while the bar holds something, so an empty page has one less thing on it.
+const showClear = () => clear.hidden = !flags.value.trim();
+flags.addEventListener('input', showClear);
 
 // A pasted table carries no stylesheet, so each cell takes its own style. Same colors as above. Cells stay on
 // one line, so each column is as wide as its longest value and no wider.
@@ -325,8 +407,10 @@ const inlineStyle = cell => [cell.tagName === 'SPAN' ? 'padding:0 3px' : 'paddin
 // window-wide, fixed-width columns) come along; only the inline styles above.
 function emailTable() {
   const table = document.createElement('table');
-  table.innerHTML = tableRows(COLUMNS_COPY);
+  table.innerHTML = headingRow(COLUMNS_COPY) + tableRows(COLUMNS_COPY, rows);
   table.setAttribute('style', 'border-collapse:collapse;font-family:Consolas,monospace;font-size:12px');
+  // The trip tab's links mean nothing in an email: keep the number, drop the link.
+  for (const link of table.querySelectorAll('a')) link.replaceWith(...link.childNodes);
   for (const cell of table.querySelectorAll('th, td, span')) {
     cell.setAttribute('style', inlineStyle(cell));
     if (cell.tagName !== 'SPAN') cell.setAttribute('nowrap', ''); // Outlook skips white-space, not this
@@ -336,21 +420,27 @@ function emailTable() {
   return table.outerHTML;
 }
 
-// Copies the whole table, ready to paste into an email: that table as HTML, and tab-separated text for plain
-// email or a spreadsheet. Every column goes, even the ones a narrow window is hiding. The copy event hands the
-// clipboard exactly these, instead of whatever the browser would make of a selection.
-copy.addEventListener('click', () => {
-  if (!rows.length) return;
-  const text = [COLUMNS_COPY.map(c => c.heading), ...rows.map(r => COLUMNS_COPY.map(c => String(c.value(r))))]
-    .map(cells => cells.join('\t')).join('\n');
+// Puts exactly this text (and HTML, when there is any) on the clipboard, instead of whatever the browser would
+// make of a selection. True if it went.
+function toClipboard(text, html) {
   const fill = e => {
-    e.clipboardData.setData('text/html', emailTable());
+    if (html) e.clipboardData.setData('text/html', html);
     e.clipboardData.setData('text/plain', text);
     e.preventDefault();
   };
   document.addEventListener('copy', fill);
   const copied = document.execCommand('copy');
   document.removeEventListener('copy', fill);
+  return copied;
+}
+
+// Copies the whole table, ready to paste into an email: that table as HTML, and tab-separated text for plain
+// email or a spreadsheet. Every column goes, even the ones a narrow window is hiding.
+copy.addEventListener('click', () => {
+  if (!rows.length) return;
+  const text = [COLUMNS_COPY.map(c => c.heading), ...rows.map(r => COLUMNS_COPY.map(c => String(c.value(r))))]
+    .map(cells => cells.join('\t')).join('\n');
+  const copied = toClipboard(text, emailTable());
   message.textContent = copied ? '' : 'Could not copy the table';
   if (copied) {
     // Ctrl+Shift+V (which Outlook on the web suggests when its own Paste button can't read the clipboard) drops the colors.
@@ -377,6 +467,92 @@ ${emailTable()}
   link.download = `${new Date().toLocaleDateString('en-CA')} ovh ${shownFlags}`.trim().replace(/[\\/:*?"<>|]/g, '') + '.html';
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+});
+
+// ---- Trip tab ----
+
+let shown = [];    // the rows the trip tab is showing, what its Copy for wave buttons copy
+
+// Everything about one report row: a heading, what it adds up to, then its orders and its items, the items
+// with stock problems first. order: the order number looked up, when the row came from one - the heading
+// then leads with that order and says which trip it's on.
+const PROBLEMS_FIRST = { short: 0, split: 1, alloc: 2 };
+function tripDetail(r, order) {
+  const channels = [...Map.groupBy(r.lines, l => l.salesChannel)]
+    .map(([channel, ls]) => [channel, total(ls, 'dollars')]).sort((a, b) => b[1] - a[1])
+    .map(([channel, dollars]) => `${channel} ${money(dollars)}`).join(', ');
+  const shipDates = [...new Set(r.lines.toSorted((a, b) => a.shipDate - b.shipDate).map(l => mdy(l.shipDate)))];
+  const holds = r.orders.filter(o => o.onHold).length;
+  const deliveries = new Set(r.lines.map(l => l.delivery).filter(Boolean)).size;
+  const facts = [
+    ['Ship method', esc(variations(r.lines.map(l => l.shippingMethod), 'ship methods'))],
+    ['Ship date', mark(shipDates.length > 1 ? `${shipDates[0]} to ${shipDates.at(-1)}` : shipDates[0], r.late && 'danger')
+      + ` ${dateGroup(r)}`],
+    ['Ship to', esc(r.shipTos)],
+    ['Status', mark(r.status, warnStatus(r.status))],
+    ['Alloc', mark(r.allocation, ALLOC_COLUMN.color(r))],
+    ['Line statuses', esc(r.lineStatuses)],
+    ['', mark(lineWorth([r], 'short'), r.allocation !== 'alloc' && 'danger')],
+    ['On hold', holds ? mark(count(holds, 'order'), 'warning') : 'none'],
+    ['Channels', esc(channels)],
+  ];
+  const headline = [count(r.orders.length, 'order'), `${deliveries} deliver${deliveries === 1 ? 'y' : 'ies'}`,
+    count(r.lines.length, 'line'), count(total(r.items, 'pieces'), 'piece'), count(r.cases, 'case'), money(r.dollars)].join(', ');
+  // The title goes above the table, not in it: a fixed layout table takes its column widths from its first row.
+  const table = (title, note, columns, rs) => `<div class="group">${groupTitle(title, note)}</div>`
+    + `<table><tr>${columns.map(th).join('')}</tr>${bodyRows(columns, rs)}</table>`;
+  // The trip in "Order 54056588 on Trip 7983534" links to the trip itself, the whole thing rather than this
+  // order's part of it. The heading of a trip looked up by its own number is where that link would land.
+  const title = order
+    ? `Order ${esc(order)} ${r.trip
+      ? `<span class="muted">on</span> Trip <a data-find="${esc(r.trip)}">${esc(r.trip)}</a>`
+      : '<span class="muted">not on a trip</span>'}`
+    : `Trip ${esc(r.trip)}`;
+  // Its own button per trip, since an order looked up on two trips shows both: the number is its place in shown.
+  return `<h2><span>${title}</span><button class="wave" data-wave="${shown.indexOf(r)}">Copy for wave (ctrl+enter)</button></h2>
+<div class="stats"><div class="headline">${headline}</div>
+${facts.map(([label, value]) => `<div>${label && `<b>${label}</b> `}${value}</div>`).join('')}</div>
+${table('Orders', r.orders.length.toLocaleString(), TRIP_ORDER_COLUMNS, r.orders)}
+${table('Items', `${r.items.length.toLocaleString()}, short and split first`, TRIP_ITEM_COLUMNS,
+    r.items.toSorted((a, b) => PROBLEMS_FIRST[a.allocation] - PROBLEMS_FIRST[b.allocation]))}`;
+}
+
+// Shows the trip whose number is in the box, or, if no trip has that number, every row holding that order (an
+// order split across trips is on each of them).
+function showTrip() {
+  const number = tripNumber.value.trim();
+  tripMessage.textContent = '';
+  tripView.innerHTML = '';
+  if (!number) return;
+  if (!data) { tripMessage.textContent = 'Open an export in the orders tab first'; return; }
+  const trip = data.filter(r => r.trip === number);
+  const found = trip.length ? trip : data.filter(r => r.orderNumbers.includes(number)).toSorted(soonestFirst);
+  if (!found.length) { tripMessage.textContent = `No trip or order ${number} in this export`; return; }
+  if (found.length > 1) tripMessage.textContent = `Order ${number} is on ${found.length} rows`;
+  shown = found;
+  tripView.innerHTML = found.map(r => `<div class="trip-detail">${tripDetail(r, !trip.length && number)}</div>`).join('');
+}
+tripNumber.addEventListener('keydown', e => { if (e.key === 'Enter') showTrip(); });
+
+// Copy for wave: the trip as the one row the wave sheet takes (waveLine), for pasting straight into it. Text
+// only, no HTML: the sheet takes tab-separated cells, and waveLine already writes them the way Excel reads them.
+function copyWave(button) {
+  const copied = toClipboard(waveLine(shown[button.dataset.wave]));
+  tripMessage.textContent = copied ? '' : 'Could not copy the row';
+  if (copied) {
+    button.textContent = 'Copied: paste with Ctrl+V';
+    setTimeout(() => button.textContent = 'Copy for wave (ctrl+enter)', 4000);
+  }
+}
+tripView.addEventListener('click', e => {
+  const button = e.target.closest('[data-wave]');
+  if (button) copyWave(button);
+});
+// Ctrl+Enter copies wherever you are on the trip tab, since Enter in the bar has just looked the trip up. An
+// order on more than one trip takes the first, the soonest; its other trips need their own button.
+document.addEventListener('keydown', e => {
+  const button = tripView.querySelector('[data-wave]');
+  if (e.key === 'Enter' && e.ctrlKey && button && !document.getElementById('trip-tab').hidden) copyWave(button);
 });
 
 // ---- Help tab ----

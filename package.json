@@ -1,6 +1,5 @@
 {
   "name": "overholser",
-  "version": "0.0.0",
-  "private": true,
-  "bin": { "ovh": "ovh.js" }
+  "version": "0.2.0",
+  "private": true
 }

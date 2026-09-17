@@ -9,7 +9,7 @@ const BUNDLE = 'const BUNDLE = null;';
 const page = read('ovh.html');
 for (const marker of [SCRIPT, BUNDLE]) if (!page.includes(marker)) throw new Error(`ovh.html has no ${marker}`);
 
-const js = read('ovh.js').replace(/^#!.*\r?\n/, ''); // a browser won't run a script that starts with #!
+const js = read('ovh.js');
 // What the page can't read from disk itself. "<" is escaped so nothing in the text can end the script tag early.
 const bundle = JSON.stringify({ version: JSON.parse(read('package.json')).version, help: read('HELP.md') })
   .replaceAll('<', '\\u003c');
