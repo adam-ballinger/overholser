@@ -73,8 +73,10 @@ each, with the longer wording in the tab's tooltip.
   left edge) and clicking it again lets it go: a toggle, so no modifier to hold
   and as many rows as you like. **bld** or **b** adds every picked row; the
   button counts them ("bld 5 (b)"), since the rows may be scrolled away from
-  it. Esc lets them all go, and so does leaving the tab (`showTab` calls
-  `unpick`), so what a button says is always what you can see.
+  it, and `addPicked` lets them go once they're on the list, so the marks left
+  behind aren't in the way of the next few. Esc lets them go too, and so does
+  leaving the tab (`showTab` calls `unpick`), so what a button says is always
+  what you can see.
   A row carries what it adds in `data-add`, as `"trip|order"` with one side
   empty: the report's rows a trip (or an order, when the row isn't on a trip),
   a trip's Orders rows that trip's own order. So a row adds itself and nothing

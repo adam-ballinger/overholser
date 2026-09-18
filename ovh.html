@@ -667,6 +667,9 @@ function countSelected() {
 function addPicked() {
   const rows = pickedRows('add');
   for (const tr of rows) addToBuild(tr.dataset.add);
+  // Added rows let go of themselves: they're on the list now, and the marks left behind would only be in the
+  // way of picking the next few.
+  if (rows.length) unpick();
   return rows.length;
 }
 function dropPicked() {

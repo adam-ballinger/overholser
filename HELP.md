@@ -149,7 +149,8 @@ time, and then paste into the wave sheet in one go.
 edge. Click as many rows as you want - each click picks a row, and clicking a
 picked row lets it go again. The **bld** button, above the table on the right,
 counts them: it reads "bld 5 (b)" when five rows are picked. Click it, or just
-press **b**, and all five go on the list at once.
+press **b**, and all five go on the list at once. The rows let go of
+themselves once they're on, so you can carry straight on picking the next few.
 
 Press **Esc** to let go of all of them; press it again and it empties the
 filter bar. Changing tabs lets go of them too, so what the button says is
