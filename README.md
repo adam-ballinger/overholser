@@ -60,12 +60,18 @@ each, with the longer wording in the tab's tooltip.
   layout table takes its column widths from its first row. Phones drop PO,
   Delivery, Customer, Hold, Pieces and Onhand.
 - **build** is a list of trips and orders to paste into the wave sheet in one
-  go, put together a number at a time. Hovering any linked number anywhere on
-  the page brings up a **bld** button beside it; one button for the whole page
-  (`#bld`), moved to whatever number the mouse is on, since a button per number
-  would be thousands of them in a full report and building the rows is already
-  the slow part. The tab counts what's on the list ("build 3"), which is the
+  go, put together a row at a time. **Clicking a row** selects it (`tr.on`, a
+  shade darker with a mark down its left edge) and **bld** or **b** adds it;
+  one selection for the whole page, so the keys always mean the row you can see
+  marked. A row carries what it adds in `data-add`: the report's rows their
+  trip (an order number when the row isn't on a trip), a trip's Orders rows
+  their own order number, so an order goes on by itself. Clicking a trip or
+  order number still looks it up on inspect - the same listener does both, the
+  number first. The tab counts what's on the list ("build 3"), which is the
   only sign a click landed when you're on another tab.
+  A floating button beside the hovered number came first and was worse: the
+  gap between number and button counted as leaving it, so it vanished as you
+  reached for it.
   The list holds **entries, not rows** (`{ trip, order }`, order empty for a
   whole trip): a new export makes new row objects, so `buildRow` looks each
   entry up again every time the list is drawn (`drawBuild`). That is what makes
@@ -74,8 +80,12 @@ each, with the longer wording in the tab's tooltip.
   holding it, since a split order is on more than one trip. An entry already on
   the list is ignored, so nothing is pasted twice.
   `BUILD_COLUMNS` is the wave sheet's eight cells less the two blanks it fills
-  in itself, in its order, plus an x per row that takes it off; **Clear**
-  empties the list. `#build-tab th, td` overrides the narrow-window rules,
+  in itself, in its order. The list's own number starts each row and an x ends
+  it - neither a column, since they count and act on the list rather than
+  saying anything the sheet takes. **drop** or **d** takes the selected row
+  off, the x the row it sits in; **Clear** empties the list. `#buildTotals`
+  says what the list comes to (rows, orders, lines, cases), orders named once
+  the way the report's counts line does them. `#build-tab th, td` overrides the narrow-window rules,
   since all six columns are in the paste. **Copy build** is one `waveLine` per
   row, newline separated, text only, no HTML: it's for pasting into the sheet,
   not an email. `waveLine` lists customers like the order numbers, each named

@@ -52,6 +52,10 @@
   .stats { display: flex; flex-wrap: wrap; gap: 2px 24px; margin: 18px 0 14px; color: #55534d }
   .stats .headline { flex-basis: 100%; color: #1b1b19 }
   .stats b { font-weight: normal; color: #94918a }
+  /* The row you clicked, marked down its left edge: what bld and drop act on. */
+  tr[data-add], tr[data-drop] { cursor: pointer }
+  tr.on td { background: #e2ddd1 }
+  tr.on td:first-child { box-shadow: inset 3px 0 #1b1b19 }
   /* A trip (or an order not on one) in the report: click it to see it in the inspect tab. */
   a[data-find] { cursor: pointer; color: inherit; text-decoration: underline dotted #94918a }
   a[data-find]:hover { text-decoration-style: solid }
@@ -89,15 +93,16 @@
   .trip-detail table { margin-bottom: 6px }
 
   /* Build tab: the list, with an x at the end of each row to take it off again. */
-  #build-tab .drop { padding: 0 6px; border: 0; background: none; color: #94918a }
+  /* What the list comes to, big, since it is the answer the tab exists to give. */
+  #buildTotals { display: flex; flex-wrap: wrap; gap: 6px 36px; margin: 4px 0 16px }
+  #buildTotals div { font-size: 26px; line-height: 1.1 }
+  #buildTotals span { display: block; font-size: 13px; color: #94918a }
+  #build-tab .num { color: #94918a }                     /* the row numbers */
+  #build-tab .drop { padding: 2px 10px; border: 0; background: none; color: #94918a }
   #build-tab .drop:hover { color: #b3261e; background: none }
   #build-tab .empty { color: #94918a }
   /* Six columns and every one of them is in the paste, so the narrow-window rules above leave them alone. */
   #build-tab th, #build-tab td { display: table-cell }
-  /* bld: one button for the whole page, moved to whatever number the mouse is on. The shadow says it is
-     floating over the table, since in a full row it lands on top of the number beside the one you are on. */
-  #bld { position: absolute; z-index: 1; display: none; padding: 0 5px; font-size: 11px; line-height: 1.5;
-         box-shadow: 1px 1px 3px #0003 }
 
   /* Help tab: kept to a readable width. */
   .help { max-width: 96ch; line-height: 1.6 }
@@ -139,6 +144,7 @@
   <div id="stats" class="stats">Pick an open orders export. It stays in this browser.</div>
   <!-- Copy and Save act on the table, so they sit with it rather than up with Open CSV. -->
   <div class="tools table-tools">
+    <button id="bldSelected">bld (b)</button>
     <button id="copy">Copy table</button>
     <button id="save">Save table</button>
   </div>
@@ -153,15 +159,16 @@
 <section id="build-tab" hidden>
   <div class="tools table-tools">
     <button id="copyBuild">Copy build</button>
+    <button id="dropSelected">drop (d)</button>
     <button id="clearBuild">Clear</button>
   </div>
   <div id="buildMessage" class="message"></div>
+  <div id="buildTotals"></div>
   <div id="buildView"></div>
 </section>
 
 <section id="help-tab" class="help" hidden></section>
 </main>
-<button id="bld" title="add to the build list">bld</button>
 
 <script src="ovh.js"></script>
 <script>
@@ -322,13 +329,15 @@ function tableRows(columns, rs, from = 0) {
     const group = dateGroup(r);
     const opens = from + i === 0 || group !== dateGroup(rows[from + i - 1]);
     return (opens ? `<tr><td class="group ${group}" colspan="${columns.length}">${groupTitle(group, worth(groups.get(group)))}</td></tr>` : '')
-      + bodyRow(columns, r);
+      + bodyRow(columns, r, r.trip || r.orderNumbers[0]);
   }).join('');
 }
 // What a divider says: "<b>LATE</b>  23 rows, $393,658.52".
 const groupTitle = (title, text) => `<b>${esc(title.toUpperCase())}</b>&nbsp; ${esc(text)}`;
-const bodyRow = (columns, r) => `<tr>${columns.map(c => td(c, r)).join('')}</tr>`;
-const bodyRows = (columns, rs) => rs.map(r => bodyRow(columns, r)).join('');
+// add: the number this row puts on the build list when it's the selected one. A row without it can be
+// selected by nothing and added by nothing - the trip tab's items, say.
+const bodyRow = (columns, r, add) => `<tr${add ? ` data-add="${esc(add)}"` : ''}>${columns.map(c => td(c, r)).join('')}</tr>`;
+const bodyRows = (columns, rs, add) => rs.map(r => bodyRow(columns, r, add?.(r))).join('');
 
 // Every flag the report takes, as buttons that type themselves into the bar: a row for each tag group (ship
 // dates, channels, allocation, status, mode), the other plain flags, then the two that take a name. The lists
@@ -403,10 +412,10 @@ flags.addEventListener('keydown', e => {
 // inspect tab. One listener over every tab, since the tables are redrawn.
 document.querySelector('main').addEventListener('click', e => {
   const find = e.target.closest('[data-find]')?.dataset.find;
-  if (!find) return;
-  tripNumber.value = find;
-  showTab('inspect-tab');
-  showTrip();
+  if (find) { tripNumber.value = find; showTab('inspect-tab'); showTrip(); return; }
+  // Anywhere else on a row selects it, one for the page, so b and d always mean the row you can see marked.
+  for (const on of document.querySelectorAll('tr.on')) on.classList.remove('on');
+  e.target.closest('tr[data-add], tr[data-drop]')?.classList.add('on');
 });
 clear.addEventListener('click', () => { flags.value = ''; flags.focus(); render(); });
 // clear (esc) only shows while the bar holds something, so an empty page has one less thing on it.
@@ -434,6 +443,7 @@ function emailTable() {
   table.setAttribute('style', 'border-collapse:collapse;font-family:Consolas,monospace;font-size:12px');
   // The inspect tab's links mean nothing in an email: keep the number, drop the link.
   for (const link of table.querySelectorAll('a')) link.replaceWith(...link.childNodes);
+  for (const row of table.querySelectorAll('tr')) { row.removeAttribute('class'); row.removeAttribute('data-add'); }
   for (const cell of table.querySelectorAll('th, td, span')) {
     cell.setAttribute('style', inlineStyle(cell));
     if (cell.tagName !== 'SPAN') cell.setAttribute('nowrap', ''); // Outlook skips white-space, not this
@@ -521,8 +531,8 @@ function tripDetail(r, order) {
   const headline = [count(r.orders.length, 'order'), `${deliveries} deliver${deliveries === 1 ? 'y' : 'ies'}`,
     count(r.lines.length, 'line'), count(total(r.items, 'pieces'), 'piece'), count(r.cases, 'case'), money(r.dollars)].join(', ');
   // The title goes above the table, not in it: a fixed layout table takes its column widths from its first row.
-  const table = (title, note, columns, rs) => `<div class="group">${groupTitle(title, note)}</div>`
-    + `<table><tr>${columns.map(th).join('')}</tr>${bodyRows(columns, rs)}</table>`;
+  const table = (title, note, columns, rs, add) => `<div class="group">${groupTitle(title, note)}</div>`
+    + `<table><tr>${columns.map(th).join('')}</tr>${bodyRows(columns, rs, add)}</table>`;
   // The trip in "Order 54056588 on Trip 7983534" links to the trip itself, the whole thing rather than this
   // order's part of it. The heading of a trip looked up by its own number is where that link would land.
   const title = order
@@ -534,7 +544,7 @@ function tripDetail(r, order) {
   return `<h2><span>${title}</span><button class="add" data-add="${esc(order || r.trip)}">bld (ctrl+enter)</button></h2>
 <div class="stats"><div class="headline">${headline}</div>
 ${facts.map(([label, value]) => `<div>${label && `<b>${label}</b> `}${value}</div>`).join('')}</div>
-${table('Orders', r.orders.length.toLocaleString(), TRIP_ORDER_COLUMNS, r.orders)}
+${table('Orders', r.orders.length.toLocaleString(), TRIP_ORDER_COLUMNS, r.orders, o => o.orderNumber)}
 ${table('Items', `${r.items.length.toLocaleString()}, short and split first`, TRIP_ITEM_COLUMNS,
     r.items.toSorted((a, b) => PROBLEMS_FIRST[a.allocation] - PROBLEMS_FIRST[b.allocation]))}`;
 }
@@ -556,13 +566,13 @@ function showTrip() {
 tripNumber.addEventListener('keydown', e => { if (e.key === 'Enter') showTrip(); });
 
 tripView.addEventListener('click', e => {
-  const button = e.target.closest('[data-add]');
+  const button = e.target.closest('button[data-add]');
   if (button) addToBuild(button.dataset.add);
 });
 // Ctrl+Enter adds wherever you are on the inspect tab, since Enter in the bar has just looked the trip up. An
 // order on more than one trip shows a button per trip, but they all name that order, so the first will do.
 document.addEventListener('keydown', e => {
-  const button = tripView.querySelector('[data-add]');
+  const button = tripView.querySelector('button[data-add]');
   if (e.key === 'Enter' && e.ctrlKey && button && !document.getElementById('inspect-tab').hidden) addToBuild(button.dataset.add);
 });
 
@@ -597,23 +607,54 @@ function buildRows() {
 function drawBuild() {
   const rows = buildRows();
   buildTab.textContent = build.length ? `build ${build.length}` : 'build';
+  buildTotals.innerHTML = rows.length ? [
+    ['rows', rows.length],
+    ['orders', new Set(rows.flatMap(r => r.orderNumbers)).size],
+    ['lines', rows.reduce((t, r) => t + r.lines.length, 0)],
+    ['cases', total(rows, 'cases')],
+  ].map(([label, n]) => `<div>${n.toLocaleString()}<span>${label}</span></div>`).join('') : '';
+  // The number in front and the × behind are the list's own, not columns: they count and act on the list
+  // rather than saying anything the wave sheet takes.
   buildView.innerHTML = rows.length
-    ? `<table><tr>${BUILD_COLUMNS.map(th).join('')}<th></th></tr>`
-      + rows.map((r, i) => `<tr>${BUILD_COLUMNS.map(c => td(c, r)).join('')}`
+    ? `<table><tr><th class="num" style="width:4ch">#</th>${BUILD_COLUMNS.map(th).join('')}<th style="width:5ch"></th></tr>`
+      + rows.map((r, i) => `<tr data-drop="${i}"><td class="num">${i + 1}</td>${BUILD_COLUMNS.map(c => td(c, r)).join('')}`
         + `<td><button class="drop" data-drop="${i}" title="take this off the list">×</button></td></tr>`).join('')
       + '</table>'
-    : '<p class="empty">Nothing on the list yet. Hover a trip or order number and click <b>bld</b>.</p>';
+    : '<p class="empty">Nothing on the list yet. Click a row on search or inspect, then <b>bld</b>.</p>';
 }
 drawBuild();
 
-// The × at the end of a row. buildRows has just put build in the same order as the table, so the number is its place.
-buildView.addEventListener('click', e => {
-  const drop = e.target.closest('[data-drop]');
-  if (!drop) return;
-  build.splice(drop.dataset.drop, 1);
+// buildRows has just put build in the same order as the table, so a row's number is its place on the list.
+function dropFromBuild(i) {
+  build.splice(i, 1);
   drawBuild();
+}
+buildView.addEventListener('click', e => {
+  const drop = e.target.closest('button[data-drop]');
+  if (drop) dropFromBuild(drop.dataset.drop);
 });
 clearBuild.addEventListener('click', () => { build = []; drawBuild(); });
+
+// Click a row, then bld or drop - by the button, or by the key beside its name. The selected row is the one
+// marked down its left edge, wherever it is: the report, a trip's orders, or the list itself.
+const selected = () => document.querySelector('tr.on');
+bldSelected.addEventListener('click', () => {
+  const tr = selected();
+  if (tr?.dataset.add) addToBuild(tr.dataset.add);
+  else message.textContent = 'Click a row first, then bld';
+});
+dropSelected.addEventListener('click', () => {
+  const tr = selected();
+  if (tr?.dataset.drop) dropFromBuild(tr.dataset.drop);
+  else buildMessage.textContent = 'Click a row first, then drop';
+});
+// Not while a bar has the typing, and not when a modifier is down: b is a letter before it's a shortcut.
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.altKey || e.metaKey || e.target.matches?.('input')) return;
+  const tr = selected();
+  if (e.key === 'b' && tr?.dataset.add) addToBuild(tr.dataset.add);
+  if (e.key === 'd' && tr?.dataset.drop) dropFromBuild(tr.dataset.drop);
+});
 
 // The whole list as the wave sheet takes it, one waveLine per row. Text only, no HTML: the sheet takes
 // tab-separated cells, and waveLine already writes them the way Excel reads them.
@@ -627,21 +668,6 @@ copyBuild.addEventListener('click', () => {
     setTimeout(() => copyBuild.textContent = 'Copy build', 4000);
   }
 });
-
-// One bld button for the page, moved to whatever trip or order number the mouse is on: a button per number
-// would be thousands of them in a full report, and building the rows is already the slow part (drawRows).
-// Over the whole document, so the button goes away wherever the mouse wanders off to - except onto itself.
-document.addEventListener('mouseover', e => {
-  if (e.target === bld) return;
-  const link = e.target.closest('a[data-find]');
-  if (!link) { bld.style.display = 'none'; return; }
-  const box = link.getBoundingClientRect();
-  bld.dataset.find = link.dataset.find;
-  bld.style.left = `${box.right + window.scrollX + 3}px`;
-  bld.style.top = `${box.top + window.scrollY - 1}px`;
-  bld.style.display = 'block';
-});
-bld.addEventListener('click', () => addToBuild(bld.dataset.find));
 
 // ---- Help tab ----
 

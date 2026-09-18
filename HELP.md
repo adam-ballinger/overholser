@@ -138,20 +138,27 @@ rather than the whole trip, which is what the heading above the button says.
 The **build** tab is a list you put together yourself, a trip or an order at a
 time, and then paste into the wave sheet in one go.
 
-To add something, hover over any trip or order number anywhere on the page - in
-the report, in a trip's orders, anywhere a number is underlined - and a small
-**bld** button appears beside it. Click it. The build tab counts what's on the
-list, so it reads "build 3" once three things are on it.
+**Click a row** to pick it out. It goes a shade darker with a mark down its
+left edge, so you can see what you're about to do something to. Then click
+**bld**, above the table on the right, or just press **b**. The build tab
+counts what's on the list, so it reads "build 3" once three things are on it.
 
-- A **trip** number puts the whole trip on the list.
-- An **order** number puts just that order on, with only its own cases and its
-  own ship date. The trip it's on still shows in the Trip column. An order
-  split across two trips puts both of its parts on.
-- Clicking **bld** on something already on the list does nothing, so nothing
-  can be pasted into the sheet twice.
+Click a row anywhere but on a number: clicking a trip or order number still
+takes you to the inspect tab, the way it always has.
 
-The list shows the six things the wave sheet wants: trip, order numbers,
-customer, ship method, ship date and cases.
+- A row on the **search** tab is a trip, so it puts the whole trip on.
+- A row in a trip's **Orders** table, on the inspect tab, is one order, so it
+  puts just that order on, with only its own cases and its own ship date. The
+  trip it's on still shows in the Trip column. An order split across two trips
+  puts both of its parts on.
+- **bld** at the right of a trip's heading on the inspect tab puts that whole
+  trip on without picking any row first.
+- Adding something already on the list does nothing, so nothing can be pasted
+  into the sheet twice.
+
+Across the top the list says what it comes to: how many rows, orders, lines
+and cases. Under that are the six things the wave sheet wants - trip, order
+numbers, customer, ship method, ship date and cases - numbered down the side.
 
 **Copy build** puts the whole list on the clipboard, one line per row, and
 **Ctrl+V** pastes it into the sheet. Each value lands in its own cell, and the
@@ -161,8 +168,9 @@ the sheet fills in its own - so what you paste lines up even though the table
 doesn't show them. A trip going to more than one customer lists them all; more
 than one ship method says how many ("2 ship methods").
 
-The **x** at the end of a row takes just that row off. **Clear** empties the
-list.
+To take one row off, click it and press **d**, or use the **drop** button above
+the table; the small **x** at the end of the row does the same. **Clear**
+empties the list.
 
 Opening a newer export keeps your list and reads every row's numbers from the
 new export, so the cases and dates are never stale. Anything that isn't in the
