@@ -171,6 +171,22 @@ const rowItems = lines => [...Map.groupBy(lines, l => l.itemNo).values()].map(ls
 // sorts and formats. A row is the lines on one trip, or one order's lines not on a trip: an order split across two
 // trips is on both, each with only its own lines. Each line is the COLUMNS above as camelCase properties, plus
 // its allocation.
+// A report row out of any run of lines: a whole trip at load, or the one order of it that was looked up or
+// put on the build list. Everything the report, the inspect tab and waveLine read off a row.
+const makeRow = ls => {
+  const orders = rowOrders(ls), items = rowItems(ls);
+  return {
+    ...summarize(ls),
+    trip: ls[0].trip,
+    orders,
+    orderNumbers: orders.map(o => o.orderNumber),
+    items,
+    itemNos: items.map(i => i.itemNo),
+    shipTos: shipTos(ls),
+    shippingMethods: shipMethods(ls),
+  };
+};
+
 function loadOrders(text) {
   const [header, ...rows] = parseCsv(text);
   const idx = COLUMNS.map(c => {
@@ -180,19 +196,7 @@ function loadOrders(text) {
   const lines = rows.map(r => Object.fromEntries(COLUMNS.map((c, i) => [toKey(c), convert(c, r[idx[i]])])));
   allocate(lines);
 
-  return [...Map.groupBy(lines, l => l.trip || `order ${l.orderNumber}`).values()].map(ls => {
-    const orders = rowOrders(ls), items = rowItems(ls);
-    return {
-      ...summarize(ls),
-      trip: ls[0].trip,
-      orders,
-      orderNumbers: orders.map(o => o.orderNumber),
-      items,
-      itemNos: items.map(i => i.itemNo),
-      shipTos: shipTos(ls),
-      shippingMethods: shipMethods(ls),
-    };
-  });
+  return [...Map.groupBy(lines, l => l.trip || `order ${l.orderNumber}`).values()].map(makeRow);
 }
 
 const money = n => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -323,9 +327,7 @@ function buildRow(entry, data) {
   if (!row) return;
   if (!entry.order) return row;
   const order = row.orders.find(o => o.orderNumber === entry.order);
-  // An order already carries its own lines, cases and ship date (summarize). What waveLine reads off a row and
-  // an order hasn't got: the trip it's on, its number as a list, and its ship methods.
-  return order && { ...order, trip: row.trip, orderNumbers: [order.orderNumber], shippingMethods: shipMethods(order.lines) };
+  return order && makeRow(order.lines);
 }
 
 // The build table's columns: the wave sheet's eight cells less the two blanks it fills in itself, in its order,

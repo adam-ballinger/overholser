@@ -541,7 +541,7 @@ function tripDetail(r, order) {
       : '<span class="muted">not on a trip</span>'}`
     : `Trip ${esc(r.trip)}`;
   // The button adds what the heading names: the trip, or the one order looked up on it.
-  return `<h2><span>${title}</span><button class="add" data-add="${esc(order || r.trip)}">bld (ctrl+enter)</button></h2>
+  return `<h2><span>${title}</span><button class="add" data-add="${esc(order || r.trip)}">bld (ctrl+b)</button></h2>
 <div class="stats"><div class="headline">${headline}</div>
 ${facts.map(([label, value]) => `<div>${label && `<b>${label}</b> `}${value}</div>`).join('')}</div>
 ${table('Orders', r.orders.length.toLocaleString(), TRIP_ORDER_COLUMNS, r.orders, o => o.orderNumber)}
@@ -549,8 +549,9 @@ ${table('Items', `${r.items.length.toLocaleString()}, short and split first`, TR
     r.items.toSorted((a, b) => PROBLEMS_FIRST[a.allocation] - PROBLEMS_FIRST[b.allocation]))}`;
 }
 
-// Shows the trip whose number is in the box, or, if no trip has that number, every row holding that order (an
-// order split across trips is on each of them).
+// Shows the trip whose number is in the box, or, if no trip has that number, the order itself - as its own row
+// (makeRow over just its lines), so its totals, orders and items are the order's and not its whole trip's. An
+// order split across trips gets one of these per trip, and each heading links the trip it is a part of.
 function showTrip() {
   const number = tripNumber.value.trim();
   tripMessage.textContent = '';
@@ -558,7 +559,8 @@ function showTrip() {
   if (!number) return;
   if (!data) { tripMessage.textContent = 'Open an export in the search tab first'; return; }
   const trip = data.filter(r => r.trip === number);
-  const found = trip.length ? trip : data.filter(r => r.orderNumbers.includes(number)).toSorted(soonestFirst);
+  const found = trip.length ? trip : data.filter(r => r.orderNumbers.includes(number)).toSorted(soonestFirst)
+    .map(r => makeRow(r.orders.find(o => o.orderNumber === number).lines));
   if (!found.length) { tripMessage.textContent = `No trip or order ${number} in this export`; return; }
   if (found.length > 1) tripMessage.textContent = `Order ${number} is on ${found.length} rows`;
   tripView.innerHTML = found.map(r => `<div class="trip-detail">${tripDetail(r, !trip.length && number)}</div>`).join('');
@@ -569,11 +571,15 @@ tripView.addEventListener('click', e => {
   const button = e.target.closest('button[data-add]');
   if (button) addToBuild(button.dataset.add);
 });
-// Ctrl+Enter adds wherever you are on the inspect tab, since Enter in the bar has just looked the trip up. An
-// order on more than one trip shows a button per trip, but they all name that order, so the first will do.
+// Ctrl+B adds wherever you are on the inspect tab, since Enter in the bar has just looked the trip up and b on
+// its own belongs to the selected row. An order on more than one trip shows a button per trip, but they all
+// name that order, so the first will do.
 document.addEventListener('keydown', e => {
   const button = tripView.querySelector('button[data-add]');
-  if (e.key === 'Enter' && e.ctrlKey && button && !document.getElementById('inspect-tab').hidden) addToBuild(button.dataset.add);
+  if (e.key === 'b' && e.ctrlKey && button && !document.getElementById('inspect-tab').hidden) {
+    e.preventDefault();
+    addToBuild(button.dataset.add);
+  }
 });
 
 // ---- Build tab ----

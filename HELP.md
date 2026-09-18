@@ -104,22 +104,25 @@ A cell that's too narrow to show everything ends in `…`. Hover over it to see
 all of it. On a small screen some columns are hidden; they're still in the
 table when you copy it.
 
-## Looking at one trip
+## Looking at one trip or one order
 
-The **inspect** tab shows everything about one trip. Click any trip or order
-number on the page - in the report, or in a trip's own list of orders - or
-type a trip or order number in the inspect tab's bar and press Enter.
+The **inspect** tab shows everything about one trip, or about one order.
+Click any trip or order number on the page - in the report, or in a trip's own
+list of orders - or type a number in the inspect tab's bar and press Enter.
 
-Looking up an order shows the trip it's on, headed "Order 54001840 on Trip
-7989649"; click that trip number to see the whole trip. An order split across
-trips shows each of its trips, one under the other, so you can see both.
+A **trip** number shows the whole trip. An **order** number shows that order
+on its own, headed "Order 54001840 on Trip 7989649": the totals, the items and
+the lines are the order's, not its trip's. Click that trip number in the
+heading to see the whole trip it's part of. An order split across trips shows
+each part, one under the other, so you can see what's on each trip.
 
-On top: what the trip adds up to, then its ship method, ship date, ship to,
+On top: what it adds up to, then the ship method, ship date, ship to,
 status, allocation, short lines, orders on hold and sales channels. Under that
 are two tables:
-- **Orders** - each order on the trip with its PO, delivery, customer, ship
-  to, ship date, whether it's on hold, allocation and totals.
-- **Items** - each item on the trip with its description, how many orders and
+- **Orders** - each order with its PO, delivery, customer, ship
+  to, ship date, whether it's on hold, allocation and totals. Looking up one
+  order, that's the one row.
+- **Items** - each item with its description, how many orders and
   pieces want it, the warehouse's onhand, allocation and totals. Short and
   split items come first, so what's missing is at the top. A cyan `flr-mtl` or
   orange `144"` tag starts the description of an item that is one (see
@@ -127,11 +130,11 @@ are two tables:
 
 On a phone some columns are hidden.
 
-**bld**, at the right of the trip's heading, puts that trip on the build list
-(see **Building a list for the wave sheet**, next). **Ctrl+Enter** does the
-same without reaching for the mouse, so you can type a trip number, press Enter
-to see it, then Ctrl+Enter to add it. Looking up an order adds that order
-rather than the whole trip, which is what the heading above the button says.
+**bld (ctrl+b)**, at the right of the heading, puts what the heading names on
+the build list (see **Building a list for the wave sheet**, next) - the trip,
+or the order when you looked an order up. **Ctrl+B** does the same without
+reaching for the mouse, so you can type a number, press Enter to see it, then
+Ctrl+B to add it.
 
 ## Building a list for the wave sheet
 
@@ -151,8 +154,8 @@ takes you to the inspect tab, the way it always has.
   puts just that order on, with only its own cases and its own ship date. The
   trip it's on still shows in the Trip column. An order split across two trips
   puts both of its parts on.
-- **bld** at the right of a trip's heading on the inspect tab puts that whole
-  trip on without picking any row first.
+- **bld (ctrl+b)** at the right of a heading on the inspect tab puts what that
+  heading names on, without picking any row first.
 - Adding something already on the list does nothing, so nothing can be pasted
   into the sheet twice.
 

@@ -6,7 +6,9 @@ file, so design changes are fast. Keep the rules reusable by a future server.
 
 Plain JavaScript, no npm packages. Three files do the work:
 - `ovh.js`: the rules. Loading an export, allocating stock, building the
-  report rows and columns, and the filters.
+  report rows and columns (`makeRow` makes one out of any run of lines: a
+  whole trip at load, one order of it when that order is looked up or put on
+  the build list), and the filters.
 - `ovh.html`: the page on top of it. It loads `ovh.js` as a plain script and
   uses its names directly, so it only has to stay next to it.
 - `bundle.js` (Node.js v24): builds the one-file copy to share.
@@ -41,19 +43,21 @@ each, with the longer wording in the tab's tooltip.
   Enter, or click one. Every trip and order number the page shows is a link
   here (a column's `find` names the numbers in its cell, `td` links each one,
   and one listener over the tabs catches the click), so the orders report and
-  a trip's own orders both lead here. A trip number shows that trip;
-  otherwise every row holding that order shows, one under another, since a
-  split order is on more than one trip. Each gets a heading ("Trip 7953463",
+  a trip's own orders both lead here. A trip number shows that trip; an order
+  number shows the order itself, `makeRow` over just its lines, so the totals,
+  orders and items are the order's and not its trip's. A split order shows one
+  of these per trip it's on. Each gets a heading ("Trip 7953463",
   or "Order 54001840 on Trip 7989649" when an order was looked up, which is
   how you see what trip an order is on; that trip number links to the whole
   trip), what it adds up to (orders, deliveries,
   lines, pieces, cases, dollars), a few facts (ship method, date, ship to,
   status, allocation, short lines, orders on hold, channels).
-  **bld (ctrl+enter)** (at the right of each heading, and the key anywhere on
-  the tab, since Enter in the bar has just looked the trip up - it takes the
-  first heading shown) adds what the heading names to the build list: the trip,
-  or, when an order was looked up, that order. The button carries the number
-  itself (`data-add`), so nothing has to remember which rows are on screen.
+  **bld (ctrl+b)** (at the right of each heading, and the key anywhere on the
+  tab, since Enter in the bar has just looked the trip up and a bare b belongs
+  to the selected row - it takes the first heading shown) adds what the heading
+  names to the build list: the trip, or, when an order was looked up, that
+  order. The button carries the number itself (`data-add`), so nothing has to
+  remember which rows are on screen.
   Then two tables: its orders (`TRIP_ORDER_COLUMNS`, soonest first) and its items
   (`TRIP_ITEM_COLUMNS`, short then split first, then most dollars). A new
   export redraws it. Table titles sit above the tables, not in a row: a fixed
