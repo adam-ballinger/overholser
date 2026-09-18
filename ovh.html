@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ovh</title>
 <style>
-  :root { color-scheme: light }
+  /* Named once here so emailTable's inlineStyle (further down) can read the same values instead of
+     repeating the hex: a saved or emailed table can never show different colors than the page. */
+  :root { color-scheme: light;
+           --danger: #b3261e; --warning: #b25a00; --cyan: #0e7c86; --id: #8a5a00; --border: #b5b1a8 }
   body { margin: 0; padding: 12px 16px; background: #faf9f7; color: #1b1b19;
          font: 13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace }
   button, .button { font: inherit; padding: 2px 10px; border: 1px solid #c9c6bf; background: #f2f0eb;
@@ -61,20 +64,20 @@
   a[data-find]:hover { text-decoration-style: solid }
   /* Columns keep the report's proportions but are shares of the window, so it always fits. */
   table { width: 100%; table-layout: fixed; border-collapse: collapse }
-  th { text-align: left; font-weight: 600; padding: 2px 8px 4px 0; border-bottom: 1px dashed #b5b1a8 }
+  th { text-align: left; font-weight: 600; padding: 2px 8px 4px 0; border-bottom: 1px dashed var(--border) }
   td { padding: 1px 8px 1px 0 }
   /* One line per row, cut with an ellipsis the way the report cuts to its column width. */
   th, td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
   tr:hover td:not(.group) { background: #efece5 }
   /* Divider above each ship date group (late, today, tomorrow, future) and each inspect tab table. */
-  .group { padding: 14px 0 3px; border-bottom: 1px solid #b5b1a8; color: #94918a }
+  .group { padding: 14px 0 3px; border-bottom: 1px solid var(--border); color: #94918a }
   .group b { color: #1b1b19; letter-spacing: 1px }
-  .group.late, .group.late b { color: #b3261e; border-bottom-color: #b3261e }
+  .group.late, .group.late b { color: var(--danger); border-bottom-color: var(--danger) }
   .right { text-align: right }
-  .id { color: #8a5a00 }                                 /* order numbers */
-  .danger { background: #b3261e; color: #fff }           /* late ship date, short allocation */
-  .warning { background: #b25a00; color: #fff }          /* split allocation, Holds, the 144" tag */
-  .cyan { background: #0e7c86; color: #fff }             /* the flr-mtl tag (temporary) */
+  .id { color: var(--id) }                               /* order numbers */
+  .danger { background: var(--danger); color: #fff }     /* late ship date, short allocation */
+  .warning { background: var(--warning); color: #fff }   /* split allocation, Holds, the 144" tag */
+  .cyan { background: var(--cyan); color: #fff }         /* the flr-mtl tag (temporary) */
   .danger, .warning, .cyan { padding: 0 3px }            /* on the text only, so a little room around it */
   /* Narrow windows drop columns rather than squeezing every one of them; a phone keeps
      what you can't read the row without: one order number, the date, dollars, allocation. */
@@ -469,17 +472,21 @@ function showClear() {
 }
 flags.addEventListener('input', showClear);
 
-// A pasted table carries no stylesheet, so each cell takes its own style. Same colors as above. Cells stay on
-// one line, so each column is as wide as its longest value and no wider.
+// A pasted table carries no stylesheet, so each cell takes its own style. Cells stay on one line, so each
+// column is as wide as its longest value and no wider.
+// The colors, read once from the CSS variables above (:root) rather than repeated here, so a saved or
+// emailed table can never show a different red or amber than the page does.
+const cssColor = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const [DANGER, WARNING, CYAN, ID_COLOR, BORDER] = ['--danger', '--warning', '--cyan', '--id', '--border'].map(cssColor);
 const inlineStyle = cell => [cell.tagName === 'SPAN' ? 'padding:0 3px' : 'padding:2px 10px 2px 0;white-space:nowrap',
-  cell.tagName === 'TH' && 'font-weight:600;text-align:left;border-bottom:1px solid #b5b1a8',
+  cell.tagName === 'TH' && `font-weight:600;text-align:left;border-bottom:1px solid ${BORDER}`,
   cell.classList.contains('right') && 'text-align:right',
-  cell.classList.contains('danger') && 'background:#b3261e;color:#fff',
-  cell.classList.contains('warning') && 'background:#b25a00;color:#fff',
-  cell.classList.contains('cyan') && 'background:#0e7c86;color:#fff',
-  cell.classList.contains('id') && 'color:#8a5a00',
-  cell.classList.contains('group') && 'padding:12px 0 2px;border-bottom:1px solid #b5b1a8',
-  cell.classList.contains('late') && 'color:#b3261e;border-bottom-color:#b3261e',
+  cell.classList.contains('danger') && `background:${DANGER};color:#fff`,
+  cell.classList.contains('warning') && `background:${WARNING};color:#fff`,
+  cell.classList.contains('cyan') && `background:${CYAN};color:#fff`,
+  cell.classList.contains('id') && `color:${ID_COLOR}`,
+  cell.classList.contains('group') && `padding:12px 0 2px;border-bottom:1px solid ${BORDER}`,
+  cell.classList.contains('late') && `color:${DANGER};border-bottom-color:${DANGER}`,
 ].filter(Boolean).join(';');
 
 // The table as the email gets it: built apart from the page, so none of the page's own table styles (its

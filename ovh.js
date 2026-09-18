@@ -351,6 +351,7 @@ const FILTERS = [
   ['order', 'orderNumber', same],
   ['trip', 'trip', same],
   ['delivery', 'delivery', same],
+  ['item', 'itemNo', same],
 ];
 
 // The plain flags that aren't tags (see rowMatches and, for dollars, topDollars).

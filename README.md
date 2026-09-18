@@ -217,10 +217,11 @@ The other plain flags (`OTHER_FLAGS`):
 
 Names, the only filters with a value (`FILTERS`): `--customer`, `--shipto`
 match any part of any line on the row, ignoring case. Put quotes around a name
-with spaces (`--customer "ace hdw"`). `--order`, `--trip` and `--delivery`
-match the number exactly, leading zeros too, so `--order 1234` doesn't pick
-51234; they show each whole row holding a matching line (an order's whole
-trip). Give more than one as a comma list or by
+with spaces (`--customer "ace hdw"`). `--order`, `--trip`, `--delivery` and
+`--item` match the number exactly, leading zeros too, so `--order 1234`
+doesn't pick 51234; they show each whole row holding a matching line (an
+order's whole trip, or, for `--item`, every trip or order with a line for that
+item). Give more than one as a comma list or by
 repeating the flag (`--shipto "morrow,moxee"`, `--order 1234,5678`); a row
 matches any of them.
 

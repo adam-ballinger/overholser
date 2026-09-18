@@ -78,6 +78,8 @@ By name or number - type it after the filter:
   whole trip, with the other orders on it.
 - `--trip 5678`, `--delivery 0099` - a trip or delivery number. Type the whole
   number, including any zeros at the start.
+- `--item 66127` - an item number, the same way. Shows every row with a line
+  for that item.
 - For more than one name, separate them with commas: `--shipto "morrow,moxee"`,
   `--order 1234,5678`.
 
