@@ -159,8 +159,8 @@ always what you can see.
 The truck up in the corner gives a little roll every time rows go on, and the
 count floats up over the tab in whatever color it feels like. Every so often
 it comes up bigger than usual - there's nothing behind that, it's just there.
-Copying the list gets the longest run of all, since that's the bit the picking
-was for.
+Copying the list gets a longer run of its own, since that's the bit the picking
+was for, and now and then it comes up as a proper jackpot.
 
 Click a row anywhere but on a number: clicking a trip or order number still
 takes you to the inspect tab, the way it always has.

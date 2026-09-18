@@ -140,7 +140,12 @@ so it gives a little back. `celebrate` rolls the truck in the header (the
 `POP_COLORS` fresh each time. `CRIT_CHANCE` is 15%: over a session of thirty
 adds that's four or five bigger runs - often enough to be worth hoping for,
 rare enough that it stays a surprise rather than the thing that always happens.
-The copy gets the longest run (`big`), since it's what the picking was for.
+The copy gets a longer run of its own (`big`), since it's what the picking was
+for, and a jackpot at `JACKPOT_CHANCE`, a quarter: a worker copies a handful of
+times where they add thirty, so 15% there would be a jackpot seen once a
+fortnight. Its rules come after `big` and `crit` so they beat both - the truck
+sweeps long and fast at once, the four totals go through three colours a beat
+apart, and "wave away!" floats up where an add floats its count.
 It counts what went on the list and not what was asked for, so picking rows
 that are already there celebrates nothing. `prefers-reduced-motion` turns the
 lot off; none of it says anything the page doesn't also say in words. The
@@ -150,7 +155,7 @@ starts.
 
 The export is read in the browser and goes nowhere else.
 
-**To share it:** `node bundle.js` writes `ovh v0.2.0.html`, named for the
+**To share it:** `node bundle.js` writes `ovh v0.3.0.html`, named for the
 `version` in `package.json`: the same page with `ovh.js`, `HELP.md` and that
 version inside it, one file to send someone for testing, nothing to set up.
 The page header shows the version too, so testers' feedback says which build

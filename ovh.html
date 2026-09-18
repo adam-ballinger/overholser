@@ -118,13 +118,24 @@
   .logo.rolling.crit .lamp { animation-duration: .35s; animation-iteration-count: 4 }
   .logo.rolling.big .speed { animation-duration: .9s; animation-iteration-count: 2 }
   #buildTotals.flash div { animation: flash .5s ease-in-out 2 }
+  /* The jackpot is the copy's own, and comes after .big and .crit so it beats both: the truck sweeps long and
+     fast at once, and the totals go through three colours one after another, each a beat behind the last. */
+  .logo.rolling.jackpot .speed { animation-duration: .4s; animation-iteration-count: 5 }
+  .logo.rolling.jackpot .lamp { animation-duration: .3s; animation-iteration-count: 7 }
+  @keyframes jackpot { 0%, 100% { color: inherit } 20% { color: var(--pop) }
+                       50% { color: var(--pop2) } 80% { color: var(--pop3) } }
+  #buildTotals.jackpot div { animation: jackpot 1.1s ease-in-out 2 }
+  #buildTotals.jackpot div:nth-child(2) { animation-delay: .08s }
+  #buildTotals.jackpot div:nth-child(3) { animation-delay: .16s }
+  #buildTotals.jackpot div:nth-child(4) { animation-delay: .24s }
   /* Fixed, not absolute: the header scrolls away in a long report and the count still has to be seen. */
   .pop { position: fixed; z-index: 2; transform: translate(-50%, 0); pointer-events: none;
          color: var(--pop); font-weight: 600; animation: rise .9s ease-out forwards }
   .pop.crit { font-size: 1.9em; text-shadow: 0 0 12px var(--pop) }
   /* Nothing here says anything the page doesn't say in words, so it can all go. */
   @media (prefers-reduced-motion: reduce) {
-    .logo.rolling .speed, .logo.rolling .lamp, #buildTotals.flash div, .pop { animation: none }
+    .logo.rolling .speed, .logo.rolling .lamp, #buildTotals.flash div, #buildTotals.jackpot div,
+    .pop { animation: none }
     .pop { display: none }
   }
 
@@ -701,6 +712,10 @@ function unpick() {
 // hoping for and rare enough that it stays a surprise rather than the thing that always happens.
 const POP_COLORS = ['#d98324', '#0e9aa7', '#3f9142', '#7a5cc4', '#c2418a'];
 const CRIT_CHANCE = 0.15;
+// The copy's own, and likelier: a worker adds thirty times in a session and copies a handful, so 15% there
+// would be a jackpot seen once a fortnight. A quarter of copies makes it a thing that happens.
+const JACKPOT_CHANCE = 0.25;
+const root = document.documentElement;
 const logo = document.querySelector('.logo');
 // The three speed lines go one after another rather than together, which is what makes it read as moving.
 document.querySelectorAll('.logo .speed').forEach((el, i) => el.style.setProperty('--d', `${i * 70}ms`));
@@ -708,23 +723,32 @@ let rolling;
 
 // n: how many rows went on, floated over the build tab. big: the copy, which is what all the picking was for.
 function celebrate(n, big) {
-  const crit = Math.random() < CRIT_CHANCE;
-  document.documentElement.style.setProperty('--pop', POP_COLORS[Math.floor(Math.random() * POP_COLORS.length)]);
+  const special = Math.random() < (big ? JACKPOT_CHANCE : CRIT_CHANCE);
+  // Three of the colours, from a random one along: whichever it starts at, the three are never the same.
+  const from = Math.floor(Math.random() * POP_COLORS.length);
+  const pick = i => POP_COLORS[(from + i) % POP_COLORS.length];
+  root.style.setProperty('--pop', pick(0));
+  root.style.setProperty('--pop2', pick(1));
+  root.style.setProperty('--pop3', pick(2));
   // Off, then a read of the layout, then on: without it a second add inside the first one's run does nothing.
-  logo.classList.remove('rolling', 'crit', 'big');
+  logo.classList.remove('rolling', 'crit', 'big', 'jackpot');
   void logo.offsetWidth;
   logo.classList.add('rolling');
-  logo.classList.toggle('crit', crit);
   logo.classList.toggle('big', !!big);
+  logo.classList.toggle('crit', special && !big);
+  logo.classList.toggle('jackpot', special && !!big);
   clearTimeout(rolling);
-  rolling = setTimeout(() => logo.classList.remove('rolling', 'crit', 'big'), crit || big ? 1800 : 900);
-  buildTotals.classList.toggle('flash', !!big);
-  if (big) setTimeout(() => buildTotals.classList.remove('flash'), 1100);
-  if (!n) return;
+  rolling = setTimeout(() => logo.classList.remove('rolling', 'crit', 'big', 'jackpot'), special || big ? 2300 : 900);
+  buildTotals.classList.toggle('flash', !!big && !special);
+  buildTotals.classList.toggle('jackpot', !!big && special);
+  if (big) setTimeout(() => buildTotals.classList.remove('flash', 'jackpot'), 2400);
+  // The adds float their count; the copy floats nothing unless it hit, and then it says so.
+  const text = n ? (special ? `+${n}!` : `+${n}`) : (special ? 'wave away!' : '');
+  if (!text) return;
   const box = buildTab.getBoundingClientRect();
   const pop = document.createElement('div');
-  pop.className = crit ? 'pop crit' : 'pop';
-  pop.textContent = crit ? `+${n}!` : `+${n}`;
+  pop.className = special ? 'pop crit' : 'pop';
+  pop.textContent = text;
   pop.style.left = `${box.left + box.width / 2}px`;
   // The header scrolls away in a long report; the count shouldn't go with it, and it rises 28px from here.
   pop.style.top = `${Math.max(box.top, 44)}px`;
