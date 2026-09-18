@@ -104,6 +104,30 @@
   /* Six columns and every one of them is in the paste, so the narrow-window rules above leave them alone. */
   #build-tab th, #build-tab td { display: table-cell }
 
+  /* Putting rows on the build list gives a little back: the truck rolls, its lamp blinks and the count floats
+     up over the tab, in a color picked fresh each time (--pop). Now and then it comes up big (.crit), and the
+     copy - the thing all the picking was for - runs longest (.big). */
+  :root { --pop: #b25a00 }
+  @keyframes roll { from { opacity: 1; transform: translateX(-9px) } to { opacity: .3; transform: none } }
+  @keyframes blink { 0%, 100% { color: #b25a00 } 40% { color: var(--pop); text-shadow: 0 0 7px var(--pop) } }
+  @keyframes rise { from { opacity: 1 } to { opacity: 0; transform: translate(-50%, -28px) } }
+  @keyframes flash { 0%, 100% { color: inherit } 40% { color: var(--pop) } }
+  .logo.rolling .speed { color: var(--pop); animation: roll .45s var(--d) ease-out }
+  .logo.rolling .lamp { animation: blink .45s ease-in-out }
+  .logo.rolling.crit .speed { animation-duration: .5s; animation-iteration-count: 3 }
+  .logo.rolling.crit .lamp { animation-duration: .35s; animation-iteration-count: 4 }
+  .logo.rolling.big .speed { animation-duration: .9s; animation-iteration-count: 2 }
+  #buildTotals.flash div { animation: flash .5s ease-in-out 2 }
+  /* Fixed, not absolute: the header scrolls away in a long report and the count still has to be seen. */
+  .pop { position: fixed; z-index: 2; transform: translate(-50%, 0); pointer-events: none;
+         color: var(--pop); font-weight: 600; animation: rise .9s ease-out forwards }
+  .pop.crit { font-size: 1.9em; text-shadow: 0 0 12px var(--pop) }
+  /* Nothing here says anything the page doesn't say in words, so it can all go. */
+  @media (prefers-reduced-motion: reduce) {
+    .logo.rolling .speed, .logo.rolling .lamp, #buildTotals.flash div, .pop { animation: none }
+    .pop { display: none }
+  }
+
   /* Help tab: kept to a readable width. */
   .help { max-width: 96ch; line-height: 1.6 }
   .help h1 { margin: 4px 0 8px; font-size: 1.5em }
@@ -565,7 +589,7 @@ tripNumber.addEventListener('keydown', e => { if (e.key === 'Enter') showTrip();
 
 tripView.addEventListener('click', e => {
   const button = e.target.closest('button[data-add]');
-  if (button) addToBuild(button.dataset.add);
+  if (button && addToBuild(button.dataset.add)) celebrate(1);
 });
 // Ctrl+B adds wherever you are on the inspect tab, since Enter in the bar has just looked the trip up and b on
 // its own belongs to the selected row. An order on more than one trip shows a button per trip, but they all
@@ -574,7 +598,7 @@ document.addEventListener('keydown', e => {
   const button = tripView.querySelector('button[data-add]');
   if (e.key === 'b' && e.ctrlKey && button && !document.getElementById('inspect-tab').hidden) {
     e.preventDefault();
-    addToBuild(button.dataset.add);
+    if (addToBuild(button.dataset.add)) celebrate(1);
   }
 });
 
@@ -590,9 +614,11 @@ let build = [];
 // trip can't be pasted twice.
 function addToBuild(spec) {
   const [trip, order] = spec.split('|');
-  if (!data || !buildRow({ trip, order }, data)) return;
-  if (!build.some(e => e.trip === trip && e.order === order)) build.push({ trip, order });
+  if (!data || !buildRow({ trip, order }, data)) return false;
+  if (build.some(e => e.trip === trip && e.order === order)) return false;
+  build.push({ trip, order });
   drawBuild();
+  return true;
 }
 
 // What the list comes to in the export showing now, the entries that find nothing dropped as it goes, so the
@@ -649,10 +675,11 @@ function countSelected() {
 }
 function addPicked() {
   const rows = pickedRows('add');
-  for (const tr of rows) addToBuild(tr.dataset.add);
+  const added = rows.filter(tr => addToBuild(tr.dataset.add)).length;
   // Added rows let go of themselves: they're on the list now, and the marks left behind would only be in the
   // way of picking the next few.
   if (rows.length) unpick();
+  if (added) celebrate(added);
   return rows.length;
 }
 function dropPicked() {
@@ -667,6 +694,44 @@ function unpick() {
   for (const tr of document.querySelectorAll('tr.on')) tr.classList.remove('on');
   countSelected();
 }
+// ---- What building feels like ----
+
+// Adding is the thing a worker does over and over, so it gives a little back. The color changes every time, and
+// now and then the run comes up big. 15%: a session of thirty adds lands four or five, often enough to be worth
+// hoping for and rare enough that it stays a surprise rather than the thing that always happens.
+const POP_COLORS = ['#d98324', '#0e9aa7', '#3f9142', '#7a5cc4', '#c2418a'];
+const CRIT_CHANCE = 0.15;
+const logo = document.querySelector('.logo');
+// The three speed lines go one after another rather than together, which is what makes it read as moving.
+document.querySelectorAll('.logo .speed').forEach((el, i) => el.style.setProperty('--d', `${i * 70}ms`));
+let rolling;
+
+// n: how many rows went on, floated over the build tab. big: the copy, which is what all the picking was for.
+function celebrate(n, big) {
+  const crit = Math.random() < CRIT_CHANCE;
+  document.documentElement.style.setProperty('--pop', POP_COLORS[Math.floor(Math.random() * POP_COLORS.length)]);
+  // Off, then a read of the layout, then on: without it a second add inside the first one's run does nothing.
+  logo.classList.remove('rolling', 'crit', 'big');
+  void logo.offsetWidth;
+  logo.classList.add('rolling');
+  logo.classList.toggle('crit', crit);
+  logo.classList.toggle('big', !!big);
+  clearTimeout(rolling);
+  rolling = setTimeout(() => logo.classList.remove('rolling', 'crit', 'big'), crit || big ? 1800 : 900);
+  buildTotals.classList.toggle('flash', !!big);
+  if (big) setTimeout(() => buildTotals.classList.remove('flash'), 1100);
+  if (!n) return;
+  const box = buildTab.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = crit ? 'pop crit' : 'pop';
+  pop.textContent = crit ? `+${n}!` : `+${n}`;
+  pop.style.left = `${box.left + box.width / 2}px`;
+  // The header scrolls away in a long report; the count shouldn't go with it, and it rises 28px from here.
+  pop.style.top = `${Math.max(box.top, 44)}px`;
+  document.body.append(pop);
+  pop.addEventListener('animationend', () => pop.remove());
+}
+
 bldSelected.addEventListener('click', () => { if (!addPicked()) message.textContent = 'Click a row first, then bld'; });
 dropSelected.addEventListener('click', () => { if (!dropPicked()) buildMessage.textContent = 'Click a row first, then drop'; });
 // Not while a bar has the typing, and not when a modifier is down: b is a letter before it's a shortcut.
@@ -696,6 +761,7 @@ copyBuild.addEventListener('click', () => {
   const copied = toClipboard(rows.map(waveLine).join('\n'));
   buildMessage.textContent = copied ? '' : 'Could not copy the list';
   if (copied) {
+    celebrate(0, true);
     copyBuild.textContent = `Copied ${count(rows.length, 'row')}: paste with Ctrl+V`;
     setTimeout(() => copyBuild.textContent = 'Copy build (ctrl+c)', 4000);
   }

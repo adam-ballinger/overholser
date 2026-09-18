@@ -156,6 +156,12 @@ Press **Esc** to let go of all of them; press it again and it empties the
 filter bar. Changing tabs lets go of them too, so what the button says is
 always what you can see.
 
+The truck up in the corner gives a little roll every time rows go on, and the
+count floats up over the tab in whatever color it feels like. Every so often
+it comes up bigger than usual - there's nothing behind that, it's just there.
+Copying the list gets the longest run of all, since that's the bit the picking
+was for.
+
 Click a row anywhere but on a number: clicking a trip or order number still
 takes you to the inspect tab, the way it always has.
 

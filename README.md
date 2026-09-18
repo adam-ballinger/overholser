@@ -133,6 +133,21 @@ otherwise, so each says no to it - `ctrl+s` saves the table on search,
 when something is selected, since copying a name out of a cell is what the
 browser's key is for.
 
+**What building feels like:** adding rows is what a worker does over and over,
+so it gives a little back. `celebrate` rolls the truck in the header (the
+`.speed` lines it already had, one after another so it reads as moving, and the
+`.lamp` blinking) and floats the count over the build tab. The color comes from
+`POP_COLORS` fresh each time. `CRIT_CHANCE` is 15%: over a session of thirty
+adds that's four or five bigger runs - often enough to be worth hoping for,
+rare enough that it stays a surprise rather than the thing that always happens.
+The copy gets the longest run (`big`), since it's what the picking was for.
+It counts what went on the list and not what was asked for, so picking rows
+that are already there celebrates nothing. `prefers-reduced-motion` turns the
+lot off; none of it says anything the page doesn't also say in words. The
+floating count is `position: fixed` and starts no higher than 44px, since the
+header scrolls away in a long report and the count rises 28px from where it
+starts.
+
 The export is read in the browser and goes nowhere else.
 
 **To share it:** `node bundle.js` writes `ovh v0.2.0.html`, named for the
