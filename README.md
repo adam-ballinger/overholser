@@ -48,25 +48,42 @@ each, with the longer wording in the tab's tooltip.
   how you see what trip an order is on; that trip number links to the whole
   trip), what it adds up to (orders, deliveries,
   lines, pieces, cases, dollars), a few facts (ship method, date, ship to,
-  status, allocation, short lines, orders on hold, channels), then two tables:
-  **Copy for wave (ctrl+enter)** (at the right of each heading, and the key
-  anywhere on the tab, since Enter in the bar has just looked the trip up - it
-  takes the first trip shown) puts that one trip on the
-  clipboard as the row the wave sheet takes (`waveLine`): eight tab-separated
-  cells - trip, its order numbers comma separated, two blanks the sheet fills
-  in itself, customer, ship method, ship date, cases. Customers are listed like
-  the order numbers, each named once; ship method says how many when a trip has
-  more than one ("2 ship methods"), like the report; the ship date is the
-  trip's earliest. The lists have a space after the comma, since Excel reads a
-  pasted cell as if it were typed and makes "54055633,54055634" one huge number
-  (the comma is its thousands separator) - the space keeps the cell text. Text
-  only, no HTML: it's for pasting into the sheet, not an email. Then two tables:
-  its orders (`TRIP_ORDER_COLUMNS`, soonest first) and its items
+  status, allocation, short lines, orders on hold, channels).
+  **bld (ctrl+enter)** (at the right of each heading, and the key anywhere on
+  the tab, since Enter in the bar has just looked the trip up - it takes the
+  first heading shown) adds what the heading names to the build list: the trip,
+  or, when an order was looked up, that order. The button carries the number
+  itself (`data-add`), so nothing has to remember which rows are on screen.
+  Then two tables: its orders (`TRIP_ORDER_COLUMNS`, soonest first) and its items
   (`TRIP_ITEM_COLUMNS`, short then split first, then most dollars). A new
   export redraws it. Table titles sit above the tables, not in a row: a fixed
   layout table takes its column widths from its first row. Phones drop PO,
   Delivery, Customer, Hold, Pieces and Onhand.
-- **build** is empty: a tab waiting for the next tool.
+- **build** is a list of trips and orders to paste into the wave sheet in one
+  go, put together a number at a time. Hovering any linked number anywhere on
+  the page brings up a **bld** button beside it; one button for the whole page
+  (`#bld`), moved to whatever number the mouse is on, since a button per number
+  would be thousands of them in a full report and building the rows is already
+  the slow part. The tab counts what's on the list ("build 3"), which is the
+  only sign a click landed when you're on another tab.
+  The list holds **entries, not rows** (`{ trip, order }`, order empty for a
+  whole trip): a new export makes new row objects, so `buildRow` looks each
+  entry up again every time the list is drawn (`drawBuild`). That is what makes
+  a new export refresh the numbers and drop whatever is no longer in it. A trip
+  number adds the trip; an order number adds just that order, on each row
+  holding it, since a split order is on more than one trip. An entry already on
+  the list is ignored, so nothing is pasted twice.
+  `BUILD_COLUMNS` is the wave sheet's eight cells less the two blanks it fills
+  in itself, in its order, plus an x per row that takes it off; **Clear**
+  empties the list. `#build-tab th, td` overrides the narrow-window rules,
+  since all six columns are in the paste. **Copy build** is one `waveLine` per
+  row, newline separated, text only, no HTML: it's for pasting into the sheet,
+  not an email. `waveLine` lists customers like the order numbers, each named
+  once; ship method says how many when a trip has more than one ("2 ship
+  methods"), like the report; the ship date is the earliest. The lists have a
+  space after the comma, since Excel reads a pasted cell as if it were typed
+  and makes "54055633,54055634" one huge number (the comma is its thousands
+  separator) - the space keeps the cell text.
 - **help** is `HELP.md`: plain-language instructions for the people using the
   page, not this file. Keep it current when what the page does changes.
 

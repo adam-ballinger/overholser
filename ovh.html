@@ -80,13 +80,24 @@
     .po, .delivery, .customer, .hold, .pieces, .onhand { display: none }  /* the inspect tab's tables */
   }
 
-  /* Inspect tab: each trip under a heading, with its Copy for wave button at the right, tables a little apart. */
+  /* Inspect tab: each trip under a heading, with its bld button at the right, tables a little apart. */
   .trip-detail h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
                     margin: 22px 0 0; font-size: 1.3em }
   .trip-detail h2 .muted { font-weight: normal; color: #94918a }
   /* font: inherit on buttons would take the heading's size and weight, so this one says its own. */
-  .wave { margin-left: auto; font-size: 13px; font-weight: normal }
+  .add { margin-left: auto; font-size: 13px; font-weight: normal }
   .trip-detail table { margin-bottom: 6px }
+
+  /* Build tab: the list, with an x at the end of each row to take it off again. */
+  #build-tab .drop { padding: 0 6px; border: 0; background: none; color: #94918a }
+  #build-tab .drop:hover { color: #b3261e; background: none }
+  #build-tab .empty { color: #94918a }
+  /* Six columns and every one of them is in the paste, so the narrow-window rules above leave them alone. */
+  #build-tab th, #build-tab td { display: table-cell }
+  /* bld: one button for the whole page, moved to whatever number the mouse is on. The shadow says it is
+     floating over the table, since in a full row it lands on top of the number beside the one you are on. */
+  #bld { position: absolute; z-index: 1; display: none; padding: 0 5px; font-size: 11px; line-height: 1.5;
+         box-shadow: 1px 1px 3px #0003 }
 
   /* Help tab: kept to a readable width. */
   .help { max-width: 96ch; line-height: 1.6 }
@@ -111,7 +122,7 @@
 <!-- The tabs read as commands, like the filter bar: one word each, with the longer wording in the tooltip. -->
 <nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered">search</button><button
   data-tab="inspect-tab" title="One trip, or one order, in full">inspect</button><button
-  data-tab="build-tab" title="Nothing here yet">build</button><button
+  id="buildTab" data-tab="build-tab" title="The list you build for the wave sheet">build</button><button
   data-tab="help-tab" title="How to use this page">help</button></nav>
 <main>
 <section id="search-tab">
@@ -139,10 +150,18 @@
   <div id="tripMessage" class="message"></div>
   <div id="tripView"></div>
 </section>
-<section id="build-tab" hidden></section>
+<section id="build-tab" hidden>
+  <div class="tools table-tools">
+    <button id="copyBuild">Copy build</button>
+    <button id="clearBuild">Clear</button>
+  </div>
+  <div id="buildMessage" class="message"></div>
+  <div id="buildView"></div>
+</section>
 
 <section id="help-tab" class="help" hidden></section>
 </main>
+<button id="bld" title="add to the build list">bld</button>
 
 <script src="ovh.js"></script>
 <script>
@@ -370,6 +389,7 @@ csv.addEventListener('change', async () => {
   } catch (e) { data = null; progress.textContent = ''; message.textContent = e.message; return; }
   render();
   showTrip();
+  drawBuild();
   showProgress(1, `done in ${((performance.now() - start) / 1000).toFixed(1)}s`);
   progressTimer = setTimeout(() => progress.textContent = '', 4000);
   flags.focus();
@@ -474,7 +494,6 @@ ${emailTable()}
 
 // ---- Inspect tab ----
 
-let shown = [];    // the rows the inspect tab is showing, what its Copy for wave buttons copy
 
 // Everything about one report row: a heading, what it adds up to, then its orders and its items, the items
 // with stock problems first. order: the order number looked up, when the row came from one - the heading
@@ -511,8 +530,8 @@ function tripDetail(r, order) {
       ? `<span class="muted">on</span> Trip <a data-find="${esc(r.trip)}">${esc(r.trip)}</a>`
       : '<span class="muted">not on a trip</span>'}`
     : `Trip ${esc(r.trip)}`;
-  // Its own button per trip, since an order looked up on two trips shows both: the number is its place in shown.
-  return `<h2><span>${title}</span><button class="wave" data-wave="${shown.indexOf(r)}">Copy for wave (ctrl+enter)</button></h2>
+  // The button adds what the heading names: the trip, or the one order looked up on it.
+  return `<h2><span>${title}</span><button class="add" data-add="${esc(order || r.trip)}">bld (ctrl+enter)</button></h2>
 <div class="stats"><div class="headline">${headline}</div>
 ${facts.map(([label, value]) => `<div>${label && `<b>${label}</b> `}${value}</div>`).join('')}</div>
 ${table('Orders', r.orders.length.toLocaleString(), TRIP_ORDER_COLUMNS, r.orders)}
@@ -532,31 +551,97 @@ function showTrip() {
   const found = trip.length ? trip : data.filter(r => r.orderNumbers.includes(number)).toSorted(soonestFirst);
   if (!found.length) { tripMessage.textContent = `No trip or order ${number} in this export`; return; }
   if (found.length > 1) tripMessage.textContent = `Order ${number} is on ${found.length} rows`;
-  shown = found;
   tripView.innerHTML = found.map(r => `<div class="trip-detail">${tripDetail(r, !trip.length && number)}</div>`).join('');
 }
 tripNumber.addEventListener('keydown', e => { if (e.key === 'Enter') showTrip(); });
 
-// Copy for wave: the trip as the one row the wave sheet takes (waveLine), for pasting straight into it. Text
-// only, no HTML: the sheet takes tab-separated cells, and waveLine already writes them the way Excel reads them.
-function copyWave(button) {
-  const copied = toClipboard(waveLine(shown[button.dataset.wave]));
-  tripMessage.textContent = copied ? '' : 'Could not copy the row';
-  if (copied) {
-    button.textContent = 'Copied: paste with Ctrl+V';
-    setTimeout(() => button.textContent = 'Copy for wave (ctrl+enter)', 4000);
-  }
-}
 tripView.addEventListener('click', e => {
-  const button = e.target.closest('[data-wave]');
-  if (button) copyWave(button);
+  const button = e.target.closest('[data-add]');
+  if (button) addToBuild(button.dataset.add);
 });
-// Ctrl+Enter copies wherever you are on the inspect tab, since Enter in the bar has just looked the trip up. An
-// order on more than one trip takes the first, the soonest; its other trips need their own button.
+// Ctrl+Enter adds wherever you are on the inspect tab, since Enter in the bar has just looked the trip up. An
+// order on more than one trip shows a button per trip, but they all name that order, so the first will do.
 document.addEventListener('keydown', e => {
-  const button = tripView.querySelector('[data-wave]');
-  if (e.key === 'Enter' && e.ctrlKey && button && !document.getElementById('inspect-tab').hidden) copyWave(button);
+  const button = tripView.querySelector('[data-add]');
+  if (e.key === 'Enter' && e.ctrlKey && button && !document.getElementById('inspect-tab').hidden) addToBuild(button.dataset.add);
 });
+
+// ---- Build tab ----
+
+// The trips and orders to paste into the wave sheet, in the order they were added. Entries rather than rows
+// ({ trip, order }, order being '' for a whole trip): a new export makes new rows, so buildRow in ovh.js looks
+// each entry up again every time the list is drawn, which refreshes them and drops whatever has gone.
+let build = [];
+
+// Adds a number the way showTrip finds one: a trip if a row has it, otherwise an order, on each row holding it,
+// since a split order is on more than one trip. Already on the list: nothing, so it can't be pasted twice.
+function addToBuild(number) {
+  if (!data) return;
+  const entries = data.some(r => r.trip === number) ? [{ trip: number, order: '' }]
+    : data.filter(r => r.orderNumbers.includes(number)).map(r => ({ trip: r.trip, order: number }));
+  for (const entry of entries) {
+    if (!build.some(e => e.trip === entry.trip && e.order === entry.order)) build.push(entry);
+  }
+  drawBuild();
+}
+
+// What the list comes to in the export showing now, the entries that find nothing dropped as it goes, so the
+// table and the paste can never show a trip that has already shipped.
+function buildRows() {
+  const found = build.map(entry => buildRow(entry, data ?? []));
+  build = build.filter((entry, i) => found[i]);
+  return found.filter(Boolean);
+}
+
+// The count is on the tab, since a number added from search or inspect lands out of sight.
+function drawBuild() {
+  const rows = buildRows();
+  buildTab.textContent = build.length ? `build ${build.length}` : 'build';
+  buildView.innerHTML = rows.length
+    ? `<table><tr>${BUILD_COLUMNS.map(th).join('')}<th></th></tr>`
+      + rows.map((r, i) => `<tr>${BUILD_COLUMNS.map(c => td(c, r)).join('')}`
+        + `<td><button class="drop" data-drop="${i}" title="take this off the list">×</button></td></tr>`).join('')
+      + '</table>'
+    : '<p class="empty">Nothing on the list yet. Hover a trip or order number and click <b>bld</b>.</p>';
+}
+drawBuild();
+
+// The × at the end of a row. buildRows has just put build in the same order as the table, so the number is its place.
+buildView.addEventListener('click', e => {
+  const drop = e.target.closest('[data-drop]');
+  if (!drop) return;
+  build.splice(drop.dataset.drop, 1);
+  drawBuild();
+});
+clearBuild.addEventListener('click', () => { build = []; drawBuild(); });
+
+// The whole list as the wave sheet takes it, one waveLine per row. Text only, no HTML: the sheet takes
+// tab-separated cells, and waveLine already writes them the way Excel reads them.
+copyBuild.addEventListener('click', () => {
+  const rows = buildRows();
+  if (!rows.length) return;
+  const copied = toClipboard(rows.map(waveLine).join('\n'));
+  buildMessage.textContent = copied ? '' : 'Could not copy the list';
+  if (copied) {
+    copyBuild.textContent = `Copied ${count(rows.length, 'row')}: paste with Ctrl+V`;
+    setTimeout(() => copyBuild.textContent = 'Copy build', 4000);
+  }
+});
+
+// One bld button for the page, moved to whatever trip or order number the mouse is on: a button per number
+// would be thousands of them in a full report, and building the rows is already the slow part (drawRows).
+// Over the whole document, so the button goes away wherever the mouse wanders off to - except onto itself.
+document.addEventListener('mouseover', e => {
+  if (e.target === bld) return;
+  const link = e.target.closest('a[data-find]');
+  if (!link) { bld.style.display = 'none'; return; }
+  const box = link.getBoundingClientRect();
+  bld.dataset.find = link.dataset.find;
+  bld.style.left = `${box.right + window.scrollX + 3}px`;
+  bld.style.top = `${box.top + window.scrollY - 1}px`;
+  bld.style.display = 'block';
+});
+bld.addEventListener('click', () => addToBuild(bld.dataset.find));
 
 // ---- Help tab ----
 

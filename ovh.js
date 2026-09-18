@@ -53,6 +53,10 @@ function variations(values, noun) {
   return distinct.length > 1 ? `${distinct.length} ${noun}` : distinct[0] ?? '';
 }
 
+// The row's ship methods, each without its last part, for wide tables and the wave sheet:
+// "Fedex Express-Parcel-Ground" -> "Fedex Express-Parcel".
+const shipMethods = lines => variations(lines.map(l => l.shippingMethod.replace(/-[^-]*$/, '')), 'ship methods');
+
 // Home Depot ship tos are stores unless they say RDC: "HOME DEPOT USA INC 5023/TF - RDC DALLAS".
 const isRdc = shipTo => shipTo.includes('RDC');
 const count = (n, noun) => `${n.toLocaleString()} ${noun}${n === 1 ? '' : 's'}`;
@@ -186,8 +190,7 @@ function loadOrders(text) {
       items,
       itemNos: items.map(i => i.itemNo),
       shipTos: shipTos(ls),
-      // Without the last part, for wide tables: "Fedex Express-Parcel-Ground" -> "Fedex Express-Parcel".
-      shippingMethods: variations(ls.map(l => l.shippingMethod.replace(/-[^-]*$/, '')), 'ship methods'),
+      shippingMethods: shipMethods(ls),
     };
   });
 }
@@ -292,6 +295,9 @@ const ordersTotals = rows =>
   `${rows.length.toLocaleString()} rows: ${new Set(rows.flatMap(r => r.orderNumbers)).size.toLocaleString()} orders, ` +
   `${rows.reduce((t, r) => t + r.lines.length, 0).toLocaleString()} lines, ${total(rows, 'cases').toLocaleString()} cases, ${money(total(rows, 'dollars'))}`;
 
+// A row's customers, each named once, the way its order numbers are: a count would lose them.
+const customers = r => [...new Set(r.lines.map(l => l.customer).filter(Boolean))].join(', ');
+
 // One row of a report row for the wave sheet, tab separated, eight cells: trip, its order numbers, two the
 // sheet fills in itself, customer, ship method, ship date, cases. Customers are listed like the order numbers,
 // so none are lost; ship method says how many when the trip has more than one, the way the report does; the
@@ -303,11 +309,35 @@ const waveLine = r => [
   r.orderNumbers.join(', '),
   '',
   '',
-  [...new Set(r.lines.map(l => l.customer).filter(Boolean))].join(', '),
+  customers(r),
   r.shippingMethods,
   mdy(r.shipDate),
   r.cases,
 ].join('\t');
+
+// The build list holds what was added rather than the rows themselves: a new export makes new rows, so every
+// entry is looked up again each time the list is drawn. An entry is { trip, order }, order being '' for a whole
+// trip or the one order of it that was added. Gone from this export: undefined, and the list drops it.
+function buildRow(entry, data) {
+  const row = data.find(r => r.trip === entry.trip && (entry.trip || r.orderNumbers.includes(entry.order)));
+  if (!row) return;
+  if (!entry.order) return row;
+  const order = row.orders.find(o => o.orderNumber === entry.order);
+  // An order already carries its own lines, cases and ship date (summarize). What waveLine reads off a row and
+  // an order hasn't got: the trip it's on, its number as a list, and its ship methods.
+  return order && { ...order, trip: row.trip, orderNumbers: [order.orderNumber], shippingMethods: shipMethods(order.lines) };
+}
+
+// The build table's columns: the wave sheet's eight cells less the two blanks it fills in itself, in its order,
+// so the table reads the way what you paste will. These and waveLine have to stay in step.
+const BUILD_COLUMNS = [
+  { heading: 'Trip', width: 7, find: r => [r.trip], value: r => r.trip },
+  { heading: 'Order Numbers', width: 30, id: true, find: r => r.orderNumbers, value: r => r.orderNumbers.join(' ') },
+  { heading: 'Customer', width: 24, value: customers },
+  { heading: 'Ship Method', width: 26, value: r => r.shippingMethods },
+  SHIP_DATE_COLUMN,
+  { heading: 'Cases', width: 6, right: true, value: r => r.cases.toLocaleString() },
+];
 
 // Name filters: [flag, line property, match]. The only filters that take a value: a row matches if any of its
 // lines does. Names match any part, ignoring case ("ace hdw" matches "ACE HDW-OK #1234"); order, trip and
