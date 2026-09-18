@@ -52,7 +52,7 @@
   .stats { display: flex; flex-wrap: wrap; gap: 2px 24px; margin: 18px 0 14px; color: #55534d }
   .stats .headline { flex-basis: 100%; color: #1b1b19 }
   .stats b { font-weight: normal; color: #94918a }
-  /* The row you clicked, marked down its left edge: what bld and drop act on. */
+  /* The rows you clicked, each marked down its left edge: what bld and drop act on. */
   tr[data-add], tr[data-drop] { cursor: pointer }
   tr.on td { background: #e2ddd1 }
   tr.on td:first-child { box-shadow: inset 3px 0 #1b1b19 }
@@ -183,6 +183,7 @@ version.textContent = BUNDLE ? `v${BUNDLE.version}` : 'dev, not bundled';
 function showTab(tab) {
   for (const button of tabs.children) button.classList.toggle('on', button.dataset.tab === tab);
   for (const section of document.querySelectorAll('main > section')) section.hidden = section.id !== tab;
+  unpick();
 }
 tabs.addEventListener('click', e => e.target.dataset.tab && showTab(e.target.dataset.tab));
 
@@ -329,13 +330,13 @@ function tableRows(columns, rs, from = 0) {
     const group = dateGroup(r);
     const opens = from + i === 0 || group !== dateGroup(rows[from + i - 1]);
     return (opens ? `<tr><td class="group ${group}" colspan="${columns.length}">${groupTitle(group, worth(groups.get(group)))}</td></tr>` : '')
-      + bodyRow(columns, r, r.trip || r.orderNumbers[0]);
+      + bodyRow(columns, r, r.trip ? `${r.trip}|` : `|${r.orderNumbers[0]}`);
   }).join('');
 }
 // What a divider says: "<b>LATE</b>  23 rows, $393,658.52".
 const groupTitle = (title, text) => `<b>${esc(title.toUpperCase())}</b>&nbsp; ${esc(text)}`;
-// add: the number this row puts on the build list when it's the selected one. A row without it can be
-// selected by nothing and added by nothing - the trip tab's items, say.
+// add: what this row puts on the build list, "trip|order" - one side of it empty, since a row is either a
+// whole trip or one order. A row without it can be picked by nothing and added by nothing: a trip's items, say.
 const bodyRow = (columns, r, add) => `<tr${add ? ` data-add="${esc(add)}"` : ''}>${columns.map(c => td(c, r)).join('')}</tr>`;
 const bodyRows = (columns, rs, add) => rs.map(r => bodyRow(columns, r, add?.(r))).join('');
 
@@ -413,9 +414,9 @@ flags.addEventListener('keydown', e => {
 document.querySelector('main').addEventListener('click', e => {
   const find = e.target.closest('[data-find]')?.dataset.find;
   if (find) { tripNumber.value = find; showTab('inspect-tab'); showTrip(); return; }
-  // Anywhere else on a row selects it, one for the page, so b and d always mean the row you can see marked.
-  for (const on of document.querySelectorAll('tr.on')) on.classList.remove('on');
-  e.target.closest('tr[data-add], tr[data-drop]')?.classList.add('on');
+  // Anywhere else on a row picks it, and picks it off again: no modifier to hold, and as many rows as you like.
+  e.target.closest('tr[data-add], tr[data-drop]')?.classList.toggle('on');
+  countSelected();
 });
 clear.addEventListener('click', () => { flags.value = ''; flags.focus(); render(); });
 // clear (esc) only shows while the bar holds something, so an empty page has one less thing on it.
@@ -541,10 +542,10 @@ function tripDetail(r, order) {
       : '<span class="muted">not on a trip</span>'}`
     : `Trip ${esc(r.trip)}`;
   // The button adds what the heading names: the trip, or the one order looked up on it.
-  return `<h2><span>${title}</span><button class="add" data-add="${esc(order || r.trip)}">bld (ctrl+b)</button></h2>
+  return `<h2><span>${title}</span><button class="add" data-add="${esc(`${r.trip}|${order || ''}`)}">bld (ctrl+b)</button></h2>
 <div class="stats"><div class="headline">${headline}</div>
 ${facts.map(([label, value]) => `<div>${label && `<b>${label}</b> `}${value}</div>`).join('')}</div>
-${table('Orders', r.orders.length.toLocaleString(), TRIP_ORDER_COLUMNS, r.orders, o => o.orderNumber)}
+${table('Orders', r.orders.length.toLocaleString(), TRIP_ORDER_COLUMNS, r.orders, o => `${r.trip}|${o.orderNumber}`)}
 ${table('Items', `${r.items.length.toLocaleString()}, short and split first`, TRIP_ITEM_COLUMNS,
     r.items.toSorted((a, b) => PROBLEMS_FIRST[a.allocation] - PROBLEMS_FIRST[b.allocation]))}`;
 }
@@ -589,15 +590,13 @@ document.addEventListener('keydown', e => {
 // each entry up again every time the list is drawn, which refreshes them and drops whatever has gone.
 let build = [];
 
-// Adds a number the way showTrip finds one: a trip if a row has it, otherwise an order, on each row holding it,
-// since a split order is on more than one trip. Already on the list: nothing, so it can't be pasted twice.
-function addToBuild(number) {
-  if (!data) return;
-  const entries = data.some(r => r.trip === number) ? [{ trip: number, order: '' }]
-    : data.filter(r => r.orderNumbers.includes(number)).map(r => ({ trip: r.trip, order: number }));
-  for (const entry of entries) {
-    if (!build.some(e => e.trip === entry.trip && e.order === entry.order)) build.push(entry);
-  }
+// Adds one "trip|order", the row's own: an order split over two trips is two rows, and picking one of them
+// puts that part on and not the other. Nothing the export doesn't hold, and nothing already on the list, so a
+// trip can't be pasted twice.
+function addToBuild(spec) {
+  const [trip, order] = spec.split('|');
+  if (!data || !buildRow({ trip, order }, data)) return;
+  if (!build.some(e => e.trip === trip && e.order === order)) build.push({ trip, order });
   drawBuild();
 }
 
@@ -612,6 +611,7 @@ function buildRows() {
 // The count is on the tab, since a number added from search or inspect lands out of sight.
 function drawBuild() {
   const rows = buildRows();
+  countSelected();
   buildTab.textContent = build.length ? `build ${build.length}` : 'build';
   buildTotals.innerHTML = rows.length ? [
     ['rows', rows.length],
@@ -641,25 +641,41 @@ buildView.addEventListener('click', e => {
 });
 clearBuild.addEventListener('click', () => { build = []; drawBuild(); });
 
-// Click a row, then bld or drop - by the button, or by the key beside its name. The selected row is the one
-// marked down its left edge, wherever it is: the report, a trip's orders, or the list itself.
-const selected = () => document.querySelector('tr.on');
-bldSelected.addEventListener('click', () => {
-  const tr = selected();
-  if (tr?.dataset.add) addToBuild(tr.dataset.add);
-  else message.textContent = 'Click a row first, then bld';
-});
-dropSelected.addEventListener('click', () => {
-  const tr = selected();
-  if (tr?.dataset.drop) dropFromBuild(tr.dataset.drop);
-  else buildMessage.textContent = 'Click a row first, then drop';
-});
+// Click the rows you want, then bld or drop - by the button, or by the key beside its name. The picked rows are
+// the ones marked down their left edge, wherever they are: the report, a trip's orders, or the list itself. A
+// row a button can't act on is simply not its own: only the list's rows have a data-drop, only the others add.
+function pickedRows(what) { return [...document.querySelectorAll(`tr.on[data-${what}]`)]; }
+// The buttons say how many they are about to act on, since the rows may be scrolled away from them.
+function countSelected() {
+  const add = pickedRows('add').length, drop = pickedRows('drop').length;
+  bldSelected.textContent = add ? `bld ${add} (b)` : 'bld (b)';
+  dropSelected.textContent = drop ? `drop ${drop} (d)` : 'drop (d)';
+}
+function addPicked() {
+  const rows = pickedRows('add');
+  for (const tr of rows) addToBuild(tr.dataset.add);
+  return rows.length;
+}
+function dropPicked() {
+  // Highest place first: dropping a row moves every row under it up one.
+  const places = pickedRows('drop').map(tr => +tr.dataset.drop).sort((a, b) => b - a);
+  for (const i of places) build.splice(i, 1);
+  if (places.length) drawBuild();
+  return places.length;
+}
+// Clears the picks. The tab you leave keeps none, so what a button says is always what you can see.
+function unpick() {
+  for (const tr of document.querySelectorAll('tr.on')) tr.classList.remove('on');
+  countSelected();
+}
+bldSelected.addEventListener('click', () => { if (!addPicked()) message.textContent = 'Click a row first, then bld'; });
+dropSelected.addEventListener('click', () => { if (!dropPicked()) buildMessage.textContent = 'Click a row first, then drop'; });
 // Not while a bar has the typing, and not when a modifier is down: b is a letter before it's a shortcut.
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.altKey || e.metaKey || e.target.matches?.('input')) return;
-  const tr = selected();
-  if (e.key === 'b' && tr?.dataset.add) addToBuild(tr.dataset.add);
-  if (e.key === 'd' && tr?.dataset.drop) dropFromBuild(tr.dataset.drop);
+  if (e.key === 'b') addPicked();
+  if (e.key === 'd') dropPicked();
+  if (e.key === 'Escape') unpick();
 });
 
 // The whole list as the wave sheet takes it, one waveLine per row. Text only, no HTML: the sheet takes

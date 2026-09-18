@@ -141,10 +141,14 @@ Ctrl+B to add it.
 The **build** tab is a list you put together yourself, a trip or an order at a
 time, and then paste into the wave sheet in one go.
 
-**Click a row** to pick it out. It goes a shade darker with a mark down its
-left edge, so you can see what you're about to do something to. Then click
-**bld**, above the table on the right, or just press **b**. The build tab
-counts what's on the list, so it reads "build 3" once three things are on it.
+**Click a row** to pick it. It goes a shade darker with a mark down its left
+edge. Click as many rows as you want - each click picks a row, and clicking a
+picked row lets it go again. The **bld** button, above the table on the right,
+counts them: it reads "bld 5 (b)" when five rows are picked. Click it, or just
+press **b**, and all five go on the list at once.
+
+Press **Esc** to let go of all of them. Changing tabs does the same, so what
+the button says is always what you can see.
 
 Click a row anywhere but on a number: clicking a trip or order number still
 takes you to the inspect tab, the way it always has.
@@ -152,8 +156,10 @@ takes you to the inspect tab, the way it always has.
 - A row on the **search** tab is a trip, so it puts the whole trip on.
 - A row in a trip's **Orders** table, on the inspect tab, is one order, so it
   puts just that order on, with only its own cases and its own ship date. The
-  trip it's on still shows in the Trip column. An order split across two trips
-  puts both of its parts on.
+  trip it's on still shows in the Trip column.
+- Each row puts **itself** on and nothing else. An order split across two
+  trips is two rows, so picking one puts that trip's part on; pick both rows
+  if you want both parts.
 - **bld (ctrl+b)** at the right of a heading on the inspect tab puts what that
   heading names on, without picking any row first.
 - Adding something already on the list does nothing, so nothing can be pasted
@@ -171,9 +177,9 @@ the sheet fills in its own - so what you paste lines up even though the table
 doesn't show them. A trip going to more than one customer lists them all; more
 than one ship method says how many ("2 ship methods").
 
-To take one row off, click it and press **d**, or use the **drop** button above
-the table; the small **x** at the end of the row does the same. **Clear**
-empties the list.
+To take rows off, pick them the same way and press **d**, or use the **drop**
+button above the table, which counts them too. The small **x** at the end of a
+row takes off that one row. **Clear** empties the list.
 
 Opening a newer export keeps your list and reads every row's numbers from the
 new export, so the cases and dates are never stale. Anything that isn't in the
