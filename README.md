@@ -23,10 +23,15 @@ each, with the longer wording in the tab's tooltip.
   `loadOrders` and drawing, since those run in one go; the page waits a short
   timer, not a frame, before each so the bar shows and a background tab doesn't
   stall). Type flags in the bar, Enter to run them, or click the flag buttons
-  under it (a flag that's already on the line comes off again). **clear (esc)**
-  empties the bar: plain text at the end of the line it empties rather than
-  another button, and only there while the line holds something (`showClear`);
-  Esc while typing does the same. It shows every row the flags pick, with a few
+  under it (a flag that's already on the line comes off again). At the end of
+  the line, plain text rather than another button, is what **Esc** will do
+  (`showClear`): "clear picked (esc)" while rows are picked, "clear filters
+  (esc)" otherwise, and nothing at all when there is neither. `escape` does
+  the nearer job first - lets the picked rows go, and only once there are none
+  empties the bar - so Esc twice always ends at nothing picked and no filters.
+  It is one listener on the whole document, not on the bar: the bar had it
+  first, and the key then did nothing once a click on a row had taken the
+  typing out of it. It shows every row the flags pick, with a few
   numbers about them on top. A divider row starts each ship date group
   (`dateGroup`: late, today, tomorrow, future, by the Ship Date Category of the
   row's earliest ship date; the categories follow date order, so each group is

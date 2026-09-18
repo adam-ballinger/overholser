@@ -138,7 +138,7 @@
   </div>
   <!-- clear sits at the end of the line it empties, as plain text, and only while there is something to empty. -->
   <div class="bar"><span>&gt;</span><input id="flags" autocomplete="off" spellcheck="false"
-    placeholder="type filters or click them below; Enter runs them"><button id="clear" hidden>clear (esc)</button></div>
+    placeholder="type filters or click them below; Enter runs them"><button id="clear" hidden>clear filters (esc)</button></div>
   <div id="message" class="message"></div>
   <div id="tags"></div>
   <div id="stats" class="stats">Pick an open orders export. It stays in this browser.</div>
@@ -307,6 +307,7 @@ let drawing = 0;
 function drawRows() {
   const mine = ++drawing;
   report.innerHTML = rows.length ? headingRow(COLUMNS_HTML) + tableRows(COLUMNS_HTML, rows.slice(0, FIRST_ROWS)) : '';
+  countSelected();
   if (rows.length <= FIRST_ROWS) return;
   setTimeout(() => {
     if (mine === drawing) report.insertAdjacentHTML('beforeend', tableRows(COLUMNS_HTML, rows.slice(FIRST_ROWS), FIRST_ROWS));
@@ -404,10 +405,9 @@ csv.addEventListener('change', async () => {
   progressTimer = setTimeout(() => progress.textContent = '', 4000);
   flags.focus();
 });
-// Enter runs the line, Esc empties it - the same as the Clear button beside it.
+// Enter runs the line. Esc is handled for the whole page, further down, since it has two jobs now.
 flags.addEventListener('keydown', e => {
   if (e.key === 'Enter') render();
-  if (e.key === 'Escape') clear.click();
 });
 // A trip or order number clicked anywhere on the page - the report, or one trip's orders - looks it up in the
 // inspect tab. One listener over every tab, since the tables are redrawn.
@@ -418,9 +418,21 @@ document.querySelector('main').addEventListener('click', e => {
   e.target.closest('tr[data-add], tr[data-drop]')?.classList.toggle('on');
   countSelected();
 });
-clear.addEventListener('click', () => { flags.value = ''; flags.focus(); render(); });
-// clear (esc) only shows while the bar holds something, so an empty page has one less thing on it.
-const showClear = () => clear.hidden = !flags.value.trim();
+// Esc does the nearer job first: it lets go of the picked rows, and once there are none it empties the bar.
+// So pressing it twice always ends up with nothing picked and no filters, whatever you were doing.
+function escape() {
+  if (document.querySelector('tr.on')) unpick();
+  else { flags.value = ''; flags.focus(); render(); }
+  showClear();
+}
+clear.addEventListener('click', escape);
+// The word at the end of the bar says which of the two Esc will do, so the key never has to be guessed at. It
+// only shows while there is something to clear, so an empty page has one less thing on it.
+function showClear() {
+  const picked = !!document.querySelector('tr.on');
+  clear.textContent = picked ? 'clear picked (esc)' : 'clear filters (esc)';
+  clear.hidden = !picked && !flags.value.trim();
+}
 flags.addEventListener('input', showClear);
 
 // A pasted table carries no stylesheet, so each cell takes its own style. Same colors as above. Cells stay on
@@ -650,6 +662,7 @@ function countSelected() {
   const add = pickedRows('add').length, drop = pickedRows('drop').length;
   bldSelected.textContent = add ? `bld ${add} (b)` : 'bld (b)';
   dropSelected.textContent = drop ? `drop ${drop} (d)` : 'drop (d)';
+  showClear();
 }
 function addPicked() {
   const rows = pickedRows('add');
@@ -672,10 +685,12 @@ bldSelected.addEventListener('click', () => { if (!addPicked()) message.textCont
 dropSelected.addEventListener('click', () => { if (!dropPicked()) buildMessage.textContent = 'Click a row first, then drop'; });
 // Not while a bar has the typing, and not when a modifier is down: b is a letter before it's a shortcut.
 document.addEventListener('keydown', e => {
+  // Esc is the one that works while a bar has the typing, since emptying that bar is half its job.
+  if (e.key === 'Escape') { escape(); return; }
   if (e.ctrlKey || e.altKey || e.metaKey || e.target.matches?.('input')) return;
   if (e.key === 'b') addPicked();
   if (e.key === 'd') dropPicked();
-  if (e.key === 'Escape') unpick();
+
 });
 
 // The whole list as the wave sheet takes it, one waveLine per row. Text only, no HTML: the sheet takes

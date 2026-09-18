@@ -21,10 +21,14 @@ close or reload the page and it's gone.
 ## Filtering
 
 Type filters in the bar at the top and press Enter, or click the buttons under
-it. Clicking a button again takes it back off. To start over, click
-**clear (esc)** at the right of the bar, or press **Esc** while you're typing
-in it: the bar empties and everything shows again. It only appears when
-there's something to clear.
+it. Clicking a button again takes it back off. To start over, press **Esc**,
+or click the word at the right of the bar that says the same.
+
+**Esc does the nearer job first.** With rows picked (see **Building a list**,
+below) it lets go of them and the word reads "clear picked (esc)"; with none
+picked it empties the bar and it reads "clear filters (esc)". So Esc twice
+always leaves you with nothing picked and no filters, wherever you started.
+The word only shows when there's something to clear.
 
 Filters of the same kind mean either one: `--today --tomorrow` is rows due
 today or tomorrow, and `--lowes --menards` is either channel. Different kinds
@@ -147,8 +151,9 @@ picked row lets it go again. The **bld** button, above the table on the right,
 counts them: it reads "bld 5 (b)" when five rows are picked. Click it, or just
 press **b**, and all five go on the list at once.
 
-Press **Esc** to let go of all of them. Changing tabs does the same, so what
-the button says is always what you can see.
+Press **Esc** to let go of all of them; press it again and it empties the
+filter bar. Changing tabs lets go of them too, so what the button says is
+always what you can see.
 
 Click a row anywhere but on a number: clicking a trip or order number still
 takes you to the inspect tab, the way it always has.
