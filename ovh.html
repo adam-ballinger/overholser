@@ -142,11 +142,10 @@
   <div id="message" class="message"></div>
   <div id="tags"></div>
   <div id="stats" class="stats">Pick an open orders export. It stays in this browser.</div>
-  <!-- Copy and Save act on the table, so they sit with it rather than up with Open CSV. -->
+  <!-- Save acts on the table, so it sits with it rather than up with Open CSV. -->
   <div class="tools table-tools">
     <button id="bldSelected">bld (b)</button>
-    <button id="copy">Copy table</button>
-    <button id="save">Save table</button>
+    <button id="save">Save table (ctrl+s)</button>
   </div>
   <table id="report"></table>
 </section>
@@ -158,9 +157,9 @@
 </section>
 <section id="build-tab" hidden>
   <div class="tools table-tools">
-    <button id="copyBuild">Copy build</button>
+    <button id="copyBuild">Copy build (ctrl+c)</button>
     <button id="dropSelected">drop (d)</button>
-    <button id="clearBuild">Clear</button>
+    <button id="clearBuild">Clear (ctrl+d)</button>
   </div>
   <div id="buildMessage" class="message"></div>
   <div id="buildTotals"></div>
@@ -466,11 +465,10 @@ function emailTable() {
   return table.outerHTML;
 }
 
-// Puts exactly this text (and HTML, when there is any) on the clipboard, instead of whatever the browser would
-// make of a selection. True if it went.
-function toClipboard(text, html) {
+// Puts exactly this text on the clipboard, instead of whatever the browser would make of a selection. True if
+// it went.
+function toClipboard(text) {
   const fill = e => {
-    if (html) e.clipboardData.setData('text/html', html);
     e.clipboardData.setData('text/plain', text);
     e.preventDefault();
   };
@@ -479,21 +477,6 @@ function toClipboard(text, html) {
   document.removeEventListener('copy', fill);
   return copied;
 }
-
-// Copies the whole table, ready to paste into an email: that table as HTML, and tab-separated text for plain
-// email or a spreadsheet. Every column goes, even the ones a narrow window is hiding.
-copy.addEventListener('click', () => {
-  if (!rows.length) return;
-  const text = [COLUMNS_COPY.map(c => c.heading), ...rows.map(r => COLUMNS_COPY.map(c => String(c.value(r))))]
-    .map(cells => cells.join('\t')).join('\n');
-  const copied = toClipboard(text, emailTable());
-  message.textContent = copied ? '' : 'Could not copy the table';
-  if (copied) {
-    // Ctrl+Shift+V (which Outlook on the web suggests when its own Paste button can't read the clipboard) drops the colors.
-    copy.textContent = `Copied ${rows.length} rows: paste with Ctrl+V`;
-    setTimeout(() => copy.textContent = 'Copy table', 4000);
-  }
-});
 
 // Saves the same table as an HTML file, under a heading that says what it is: the filters, the export and the
 // counts line. For when a pasted copy loses its formatting: open the file, or attach it.
@@ -690,7 +673,16 @@ dropSelected.addEventListener('click', () => { if (!dropPicked()) buildMessage.t
 document.addEventListener('keydown', e => {
   // Esc is the one that works while a bar has the typing, since emptying that bar is half its job.
   if (e.key === 'Escape') { escape(); return; }
-  if (e.ctrlKey || e.altKey || e.metaKey || e.target.matches?.('input')) return;
+  // The ctrl keys belong to the tab showing, and each is the browser's own key otherwise, so each says no to it.
+  // Ctrl+C steps aside for a selection: copying a name out of the table is what the browser's own key is for.
+  if (e.ctrlKey && !e.altKey && !e.metaKey) {
+    const showing = id => !document.getElementById(id).hidden;
+    if (e.key === 'c' && showing('build-tab') && !getSelection().toString()) { e.preventDefault(); copyBuild.click(); }
+    if (e.key === 'd' && showing('build-tab')) { e.preventDefault(); clearBuild.click(); }
+    if (e.key === 's' && showing('search-tab')) { e.preventDefault(); save.click(); }
+    return;
+  }
+  if (e.altKey || e.metaKey || e.target.matches?.('input')) return;
   if (e.key === 'b') addPicked();
   if (e.key === 'd') dropPicked();
 
@@ -705,7 +697,7 @@ copyBuild.addEventListener('click', () => {
   buildMessage.textContent = copied ? '' : 'Could not copy the list';
   if (copied) {
     copyBuild.textContent = `Copied ${count(rows.length, 'row')}: paste with Ctrl+V`;
-    setTimeout(() => copyBuild.textContent = 'Copy build', 4000);
+    setTimeout(() => copyBuild.textContent = 'Copy build (ctrl+c)', 4000);
   }
 });
 

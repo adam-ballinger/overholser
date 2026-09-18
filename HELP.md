@@ -175,7 +175,7 @@ Across the top the list says what it comes to: how many rows, orders, lines
 and cases. Under that are the six things the wave sheet wants - trip, order
 numbers, customer, ship method, ship date and cases - numbered down the side.
 
-**Copy build** puts the whole list on the clipboard, one line per row, and
+**Copy build (ctrl+c)** puts the whole list on the clipboard, one line per row, and
 **Ctrl+V** pastes it into the sheet. Each value lands in its own cell, and the
 order numbers stay as they are instead of turning into one long number. Two
 blank cells go in between the order numbers and the customer, which is where
@@ -185,7 +185,8 @@ than one ship method says how many ("2 ship methods").
 
 To take rows off, pick them the same way and press **d**, or use the **drop**
 button above the table, which counts them too. The small **x** at the end of a
-row takes off that one row. **Clear** empties the list.
+row takes off that one row. **Clear (ctrl+d)** empties the list - all of it at
+once, with no way back, so mind that one.
 
 Opening a newer export keeps your list and reads every row's numbers from the
 new export, so the cases and dates are never stale. Anything that isn't in the
@@ -226,24 +227,25 @@ They cover just the rows your filters picked.
 - **Ship dates** - the earliest and latest ship date.
 - **Biggest channel** - the sales channel with the most dollars.
 
-## Copying into an email
+## Sending the report on
 
-Click **Copy table**, just above the table, then paste into your email with
-**Ctrl+V**. The whole table comes along,
-colors included - every row your filters picked and every column, even ones
-hidden on a small screen. Each cell stays on one line, and Items shows the
-row's biggest few items, then `…` if there are more.
+**Save table (ctrl+s)**, just above the table, saves the report as a file in
+your Downloads, named with the date and your filters, like
+`2026-09-16 ovh --late --thd.html`, and headed with the filters, the export's
+name and the counts. Open it in your browser, or attach it to an email.
 
-If the colors and font don't come along:
-- Use **Ctrl+V**, not Ctrl+Shift+V: that one pastes plain text. Outlook in a
-  browser says it "can't access the clipboard" if you use its Paste button or
-  right-click Paste, and points you to both keys; Ctrl+V is the one you want.
-- Check the email isn't set to plain text. In Outlook on the web: **Options**,
-  then **Switch to HTML** if you see it.
+The file has the whole table in it, colors included - every row your filters
+picked and every column, even ones hidden on a small screen. Each cell stays
+on one line, and Items shows the row's biggest few items, then `…` if there
+are more.
 
-Pasting into a spreadsheet works too: each value lands in its own cell.
+## The keys
 
-**Save table** saves the same table as a file in your Downloads, named with
-the date and your filters, like `2026-09-16 ovh --late --thd.html`, and headed
-with the filters, the export's name and the counts. Open it in your browser,
-or attach it to an email.
+- **b** - put the picked rows on the build list.
+- **d** - take the picked rows off the build list.
+- **Esc** - let go of the picked rows; again, empty the filter bar.
+- **Ctrl+B** - on inspect, put what the heading names on the list.
+- **Ctrl+C** - on build, copy the list. (With something selected on the page
+  it copies that instead, the way it normally would.)
+- **Ctrl+D** - on build, empty the list.
+- **Ctrl+S** - on search, save the table.

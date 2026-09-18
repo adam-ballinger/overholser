@@ -113,19 +113,25 @@ each, with the longer wording in the tab's tooltip.
 - **help** is `HELP.md`: plain-language instructions for the people using the
   page, not this file. Keep it current when what the page does changes.
 
-**Copy table** and **Save table** sit at the right just above the table they
-act on, away from Open CSV and the typing line.
+**Save table (ctrl+s)** sits at the right just above the table it acts on, away
+from Open CSV and the typing line. It downloads the report as an HTML file
+(`2026-09-16 ovh --late --thd.html`: the date, then the filters behind the
+table shown), headed by the filters, the export's name and the counts line:
+for Outlook, where a pasted copy loses its text formatting. `emailTable`
+builds it apart from the page, so only its inline styles go along (a copied
+selection would bring the page's window-wide columns); every column goes, even
+the ones the window is too narrow to show, with the group dividers, cells on
+one line and Items kept to 34 characters.
 
-**Copy table** puts the rows on the clipboard as a table to paste straight into
-an email, colors and all - every column, even the ones the window is too narrow
-to show, with the group dividers - plus tab-separated text (no dividers) for
-plain email or a spreadsheet. The table is built apart from the page and handed
-to the clipboard as is, so only its inline styles go along (a copied selection
-would bring the page's window-wide columns). Cells stay on one line and Items
-keeps to 34 characters. **Save table** downloads that same table as an HTML
-file (`2026-09-16 ovh --late --thd.html`: the date, then the filters behind the
-table shown), under the filters, the export's name and the counts line: for
-Outlook, where a pasted copy loses its text formatting.
+A **Copy table** button put the same table on the clipboard, as HTML and as
+tab-separated text. Adam asked for it out for now; it is in the history, and
+`toClipboard` lost the HTML half of its job with it.
+
+**The keys:** each belongs to the tab showing and each is the browser's own
+otherwise, so each says no to it - `ctrl+s` saves the table on search,
+`ctrl+c` copies the list and `ctrl+d` empties it on build. Ctrl+C steps aside
+when something is selected, since copying a name out of a cell is what the
+browser's key is for.
 
 The export is read in the browser and goes nowhere else.
 
