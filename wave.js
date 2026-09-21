@@ -355,7 +355,7 @@ const FILTERS = [
 ];
 
 // The plain flags that aren't tags (see rowMatches and, for dollars, topDollars).
-const OTHER_FLAGS = ['144', 'flr-mtl', 'dollars'];
+const OTHER_FLAGS = ['144', 'no-144', 'flr-mtl', 'dollars'];
 
 const LATE = ['9+ Days Late', '4-8 Days Late', '1-3 Days Late'];
 
@@ -437,9 +437,10 @@ const linesMatch = (lines, filters) =>
   && tagsGiven(filters).every(([group, picked]) => !group.line || lines.some(l => picked.some(p => group.line(l, p))));
 
 // True if a report row matches every filter given, e.g. { lowes: true, holds: true, today: true }: the name and
-// line filters by any of its lines, the row tags by the row itself. 144: only rows with a 144" item.
-// flr-mtl (TEMPORARY): only flrMtl rows.
+// line filters by any of its lines, the row tags by the row itself. 144: only rows with a 144" item,
+// no-144: only rows without one. flr-mtl (TEMPORARY): only flrMtl rows.
 const rowMatches = (row, filters) => linesMatch(row.lines, filters)
   && tagsGiven(filters).every(([group, picked]) => !group.row || picked.some(p => group.row(row, p)))
   && (!filters['144'] || row.has144)
+  && (!filters['no-144'] || !row.has144)
   && (!filters['flr-mtl'] || row.flrMtl);

@@ -242,7 +242,8 @@ matches a row if any of its lines matches; a row group tests the row itself.
   Lines with no category have no mode.
 
 The other plain flags (`OTHER_FLAGS`):
-- `--144` keeps only rows holding a 144" item (the ones the Items column tags).
+- `--144` keeps only rows holding a 144" item (the ones the Items column tags),
+  `--no-144` only rows holding none.
 - `--flr-mtl` (**temporary**) keeps only rows with a HOME DEPOT-OK line for
   one of Home Depot's 104 Flooring items (`FLR_MTL_ITEMS`, copied from
   "2026-09-12 Home Depot Item Category Master Reference.xlsx"). Those rows'
