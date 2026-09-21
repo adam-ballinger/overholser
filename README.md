@@ -18,7 +18,14 @@ Plain JavaScript, no npm packages. Three files do the work:
 
 Open `ovh.html` in a browser; no server, no setup. It has tabs, one per tool;
 more will come. Their names read as commands, like the filter bar: one word
-each, with the longer wording in the tab's tooltip.
+each, with the longer wording in the tab's tooltip. **Alt and a tab's first
+letter shows it** (`alt+s`, `alt+i`, `alt+b`, `alt+h`): the name is the key, so
+there is nothing to remember, and the tooltip says it. It is read off the
+buttons themselves, so a new tab gets its key by being named - two tabs
+starting with the same letter is what would break it. Like Esc it works while
+a bar has the typing, since leaving the filter bar for inspect is what it is
+for, and `e.code` rather than `e.key`, since a Mac's Option turns the letter
+into a symbol.
 - **search** is the orders report. Pick an export (a text bar beside the button
   shows the load: real progress while the file is read, then a step each for
   `loadOrders` and drawing, since those run in one go; the page waits a short
@@ -128,11 +135,12 @@ A **Copy table** button put the same table on the clipboard, as HTML and as
 tab-separated text. Adam asked for it out for now; it is in the history, and
 `toClipboard` lost the HTML half of its job with it.
 
-**The keys:** each belongs to the tab showing and each is the browser's own
-otherwise, so each says no to it - `ctrl+s` saves the table on search,
-`ctrl+c` copies the list and `ctrl+d` empties it on build. Ctrl+C steps aside
-when something is selected, since copying a name out of a cell is what the
-browser's key is for.
+**The keys:** the ctrl ones belong to the tab showing and each is the
+browser's own otherwise, so each says no to it - `ctrl+s` saves the table on
+search, `ctrl+c` copies the list and `ctrl+d` empties it on build. Ctrl+C
+steps aside when something is selected, since copying a name out of a cell is
+what the browser's key is for. The alt ones are the tabs, above, and the only
+keys that work from any tab.
 
 **What building feels like:** adding rows is what a worker does over and over,
 so it gives a little back. `celebrate` rolls the truck in the header (the

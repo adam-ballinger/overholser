@@ -2,11 +2,12 @@
 
 ovh shows the open orders export as a report you can filter, check and copy
 into an email. This is an early test version: if something is confusing, wrong
-or missing, tell whoever sent you this file.
+or missing, tell whoever sent you the link.
 
 ## Getting started
 
-- Open this file in a web browser, like Chrome or Edge. Nothing to install.
+- Open the page in a web browser, like Chrome or Edge. The link is all you
+  need; nothing to install, and it is always the newest version.
 - Click **Open CSV** and pick the open orders export (a `.csv` file) from the
   office system.
 - A bar next to the button shows it loading; a big export takes a few
@@ -14,6 +15,9 @@ or missing, tell whoever sent you this file.
 - The report appears. Narrow it down with the filters: see **Filtering**,
   next.
 - To start over with a newer export, click **Open CSV** again.
+- The four tabs across the top are the tools. Click one, or hold **Alt** and
+  press its first letter: **Alt+S** search, **Alt+I** inspect, **Alt+B**
+  build, **Alt+H** help.
 
 Your export stays on your computer. Nothing is uploaded or saved anywhere:
 close or reload the page and it's gone.
@@ -249,6 +253,9 @@ are more.
 
 ## The keys
 
+- **Alt+S**, **Alt+I**, **Alt+B**, **Alt+H** - show the search, inspect,
+  build or help tab. The tab's first letter, and they work even while you
+  are typing in a bar.
 - **b** - put the picked rows on the build list.
 - **d** - take the picked rows off the build list.
 - **Esc** - let go of the picked rows; again, empty the filter bar.

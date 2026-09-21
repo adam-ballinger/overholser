@@ -163,10 +163,10 @@
 <div class="brand"><b>overholser</b><br>open orders, sorted<br><span id="version"></span></div>
 </header>
 <!-- The tabs read as commands, like the filter bar: one word each, with the longer wording in the tooltip. -->
-<nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered">search</button><button
-  data-tab="inspect-tab" title="One trip, or one order, in full">inspect</button><button
-  id="buildTab" data-tab="build-tab" title="The list you build for the wave sheet">build</button><button
-  data-tab="help-tab" title="How to use this page">help</button></nav>
+<nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered (alt+s)">search</button><button
+  data-tab="inspect-tab" title="One trip, or one order, in full (alt+i)">inspect</button><button
+  id="buildTab" data-tab="build-tab" title="The list you build for the wave sheet (alt+b)">build</button><button
+  data-tab="help-tab" title="How to use this page (alt+h)">help</button></nav>
 <main>
 <section id="search-tab">
   <div class="tools">
@@ -769,6 +769,15 @@ dropSelected.addEventListener('click', () => { if (!dropPicked()) buildMessage.t
 document.addEventListener('keydown', e => {
   // Esc is the one that works while a bar has the typing, since emptying that bar is half its job.
   if (e.key === 'Escape') { escape(); return; }
+  // Alt and a tab's first letter shows that tab: alt+s search, alt+i inspect, alt+b build, alt+h help. The
+  // name is the key, so there is nothing to remember, and it is read off the buttons, so a new tab gets its
+  // key by being named. Like Esc it works while a bar has the typing - leaving the filter bar for inspect is
+  // what it is for. e.code, not e.key, since a Mac's Option turns the letter into a symbol.
+  if (e.altKey && !e.ctrlKey && !e.metaKey) {
+    const tab = [...tabs.children].find(b => b.textContent[0].toUpperCase() === e.code.slice(3));
+    if (tab) { e.preventDefault(); showTab(tab.dataset.tab); }
+    return;
+  }
   // The ctrl keys belong to the tab showing, and each is the browser's own key otherwise, so each says no to it.
   // Ctrl+C steps aside for a selection: copying a name out of the table is what the browser's own key is for.
   if (e.ctrlKey && !e.altKey && !e.metaKey) {
