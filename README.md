@@ -12,8 +12,7 @@ Plain JavaScript, no npm packages. Three files do the work:
   the build list), and the filters.
 - `ovh.html`: the page on top of it. It loads `ovh.js` as a plain script and
   uses its names directly, so it only has to stay next to it.
-- `bundle.js` (Node.js v24): builds the one-file copies - `index.html` for the
-  site, and one named for the version to send a tester.
+- `bundle.js` (Node.js v24): builds `index.html`, the one file the site serves.
 
 ## The page
 
@@ -157,18 +156,15 @@ starts.
 
 The export is read in the browser and goes nowhere else.
 
-**To share it:** `node bundle.js` writes the same page twice, with `ovh.js`,
-`HELP.md` and the `version` from `package.json` inside it, nothing to set up:
-- `index.html`, what GitHub Pages serves at
-  <https://adam-ballinger.github.io/overholser/>. It is the only built file in
-  the repo, since Pages serves what is committed and this project has no build
-  step of its own to run there. So a change is live once the rebuilt
-  `index.html` is pushed.
-- `ovh v0.5.0.html`, named for the build it is, one file to send someone for
-  testing. The page header shows the version too, so testers' feedback says
-  which build they had, and a new version is a new file rather than one that
-  quietly changed under the last one. `.gitignore` has `ovh v*.html`, so none
-  of them land in the repo; the old ones are yours to keep or delete.
+**To share it:** send the address. `node bundle.js` writes `index.html`, the
+page with `ovh.js`, `HELP.md` and the `version` from `package.json` inside it,
+and GitHub Pages serves that one file at
+<https://adam-ballinger.github.io/overholser/> - nothing to set up, nothing to
+download. It is the only built file in the repo, since Pages serves what is
+committed and this project has no build step of its own to run there. So a
+change is live once the rebuilt `index.html` is pushed, and everyone is always
+on the newest one. The page header shows the version, so a tester's feedback
+still says which build they had.
 
 The page is all there is to deploy: no server, no packages, and the export is
 read in the browser, so Pages never sees it. Pages needs the repo public,
@@ -179,10 +175,10 @@ open internet - no customer data, but check before adding anything internal.
 (0.1.0 → 0.1.1), committed with that push. The minor number (0.1 → 0.2) goes
 up when the work since the last one is a new tool, or something testers would
 notice. Claude judges which, raises it with the push and says so afterwards.
-The built files are built, not edited, so run `node bundle.js` again after
+`index.html` is built, not edited, so run `node bundle.js` again after
 changing `ovh.html`, `ovh.js`, `HELP.md` or the version - and push the new
 `index.html`, or the site still shows the old one. The help and version are
-only in a built file, since `ovh.html` can't read files from disk; it says
+only in `index.html`, since `ovh.html` can't read files from disk; it says
 "dev, not bundled" instead.
 
 ## Filters

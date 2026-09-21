@@ -1,6 +1,5 @@
-// Writes the one-file copy of the page twice: "index.html", what GitHub Pages serves, and
-// "ovh v0.2.0.html", the same thing named for its build to send a tester. Both are ovh.html with
-// ovh.js, HELP.md and the package.json version inside. Run it after changing any of them: node bundle.js
+// Writes "index.html", the one file GitHub Pages serves: ovh.html with ovh.js, HELP.md and the
+// package.json version inside it. Run it after changing any of them: node bundle.js
 const fs = require('fs');
 const path = require('path');
 const read = file => fs.readFileSync(path.join(__dirname, file), 'utf8');
@@ -15,11 +14,7 @@ const js = read('ovh.js');
 const { version } = JSON.parse(read('package.json'));
 const bundle = JSON.stringify({ version, help: read('HELP.md') }).replaceAll('<', '\u003c');
 // Functions as replacements, so a "$" in the code is never read as a replace pattern.
-const built = page
+fs.writeFileSync(path.join(__dirname, 'index.html'), page
   .replace(SCRIPT, () => `<script>\n${js}</script>`)
-  .replace(BUNDLE, () => `const BUNDLE = ${bundle};`);
-
-for (const out of ['index.html', `ovh v${version}.html`]) {
-  fs.writeFileSync(path.join(__dirname, out), built);
-  console.log(`Wrote ${out}`);
-}
+  .replace(BUNDLE, () => `const BUNDLE = ${bundle};`));
+console.log('Wrote index.html');
