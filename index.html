@@ -1,0 +1,1286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ovh</title>
+<style>
+  /* Named once here so emailTable's inlineStyle (further down) can read the same values instead of
+     repeating the hex: a saved or emailed table can never show different colors than the page. */
+  :root { color-scheme: light;
+           --danger: #b3261e; --warning: #b25a00; --cyan: #0e7c86; --id: #8a5a00; --border: #b5b1a8 }
+  body { margin: 0; padding: 12px 16px; background: #faf9f7; color: #1b1b19;
+         font: 13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace }
+  button, .button { font: inherit; padding: 2px 10px; border: 1px solid #c9c6bf; background: #f2f0eb;
+                    color: inherit; cursor: pointer }
+  button:hover, .button:hover { background: #e8e5de }
+  /* Header: the logo, a truck hauling "ovh", with the name and version beside it (under it on a phone).
+     Line height 1 so the box and block characters join up. Only characters Consolas has, so it lines up
+     on any Windows machine. */
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 20px; margin-bottom: 10px }
+  .logo { margin: 0; font: inherit; line-height: 1 }
+  .logo .frame { color: #94918a }
+  .logo .speed { color: #d3d0c9 }
+  .logo .lamp { color: #b25a00 }
+  .brand { padding-bottom: 2px; line-height: 1.4; color: #94918a }
+  .brand b { color: #1b1b19 }
+  #version { color: #8a5a00 }
+  /* Tabs: the one showing is underlined. */
+  #tabs { display: flex; margin: 0 -16px 12px; padding: 0 16px; border-bottom: 1px solid #c9c6bf }
+  #tabs button { margin-bottom: -1px; padding: 4px 14px; border: 0; border-bottom: 2px solid transparent;
+                 background: none; color: #94918a }
+  #tabs button:hover { color: #1b1b19 }
+  #tabs button.on { color: #1b1b19; border-bottom-color: #1b1b19 }
+
+  /* Search tab */
+  .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px }
+  #filename { color: #55534d }
+  /* The loading bar: "████████░░░░░░░░░░░░  40% reading". */
+  #progress { color: #94918a }
+  #progress b { font-weight: normal; color: #b25a00 }
+  #progress i { font-style: normal; color: #d3d0c9 }
+  .table-tools { justify-content: flex-end; margin-bottom: 6px }  /* Copy and Save, at the right above the table */
+  /* The filter bar reads as a prompt: "> --today --thd", with room around it to type in. */
+  .bar { display: flex; align-items: center; gap: 8px; margin: 18px 0; border-bottom: 1px solid #c9c6bf }
+  .bar > span { color: #94918a }
+  /* clear (esc) is a word at the end of the bar, not another box beside the boxes above it. */
+  #clear { padding: 0 0 2px; border: 0; background: none; color: #94918a }
+  #clear:hover { color: #1b1b19; background: none; text-decoration: underline }
+  .bar input { flex: 1; min-width: 0; font: inherit; padding: 4px 0; border: 0; outline: none; background: none; color: inherit }
+  .message { color: #a4271c }
+  /* Every flag the report takes, a row of buttons per group. */
+  #tags { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 12px }
+  #tags div { display: flex; flex-wrap: wrap; gap: 4px }
+  #tags button { padding: 0 6px }
+  .stats { display: flex; flex-wrap: wrap; gap: 2px 24px; margin: 18px 0 14px; color: #55534d }
+  .stats .headline { flex-basis: 100%; color: #1b1b19 }
+  .stats b { font-weight: normal; color: #94918a }
+  /* The rows you clicked, each marked down its left edge: what bld and drop act on. */
+  tr[data-add], tr[data-drop] { cursor: pointer }
+  tr.on td { background: #e2ddd1 }
+  tr.on td:first-child { box-shadow: inset 3px 0 #1b1b19 }
+  /* A trip (or an order not on one) in the report: click it to see it in the inspect tab. */
+  a[data-find] { cursor: pointer; color: inherit; text-decoration: underline dotted #94918a }
+  a[data-find]:hover { text-decoration-style: solid }
+  /* Columns keep the report's proportions but are shares of the window, so it always fits. */
+  table { width: 100%; table-layout: fixed; border-collapse: collapse }
+  th { text-align: left; font-weight: 600; padding: 2px 8px 4px 0; border-bottom: 1px dashed var(--border) }
+  td { padding: 1px 8px 1px 0 }
+  /* One line per row, cut with an ellipsis the way the report cuts to its column width. */
+  th, td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+  tr:hover td:not(.group) { background: #efece5 }
+  /* Divider above each ship date group (late, today, tomorrow, future) and each inspect tab table. */
+  .group { padding: 14px 0 3px; border-bottom: 1px solid var(--border); color: #94918a }
+  .group b { color: #1b1b19; letter-spacing: 1px }
+  .group.late, .group.late b { color: var(--danger); border-bottom-color: var(--danger) }
+  .right { text-align: right }
+  .id { color: var(--id) }                               /* order numbers */
+  .danger { background: var(--danger); color: #fff }     /* late ship date, short allocation */
+  .warning { background: var(--warning); color: #fff }   /* split allocation, Holds, the 144" tag */
+  .cyan { background: var(--cyan); color: #fff }         /* the flr-mtl tag (temporary) */
+  .danger, .warning, .cyan { padding: 0 3px }            /* on the text only, so a little room around it */
+  /* Narrow windows drop columns rather than squeezing every one of them; a phone keeps
+     what you can't read the row without: one order number, the date, dollars, allocation. */
+  @media (max-width: 900px) { .ship-method, .items { display: none } }
+  @media (max-width: 600px) {
+    .ship-to, .trip, .orders, .lines, .cases, .line-statuses { display: none }
+    .po, .delivery, .customer, .hold, .pieces, .onhand { display: none }  /* the inspect tab's tables */
+  }
+
+  /* Inspect tab: each trip under a heading, with its bld button at the right, tables a little apart. */
+  .trip-detail h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
+                    margin: 22px 0 0; font-size: 1.3em }
+  .trip-detail h2 .muted { font-weight: normal; color: #94918a }
+  /* font: inherit on buttons would take the heading's size and weight, so this one says its own. */
+  .add { margin-left: auto; font-size: 13px; font-weight: normal }
+  .trip-detail table { margin-bottom: 6px }
+
+  /* Build tab: the list, with an x at the end of each row to take it off again. */
+  /* What the list comes to, big, since it is the answer the tab exists to give. */
+  #buildTotals { display: flex; flex-wrap: wrap; gap: 6px 36px; margin: 4px 0 16px }
+  #buildTotals div { font-size: 26px; line-height: 1.1 }
+  #buildTotals span { display: block; font-size: 13px; color: #94918a }
+  #build-tab .num { color: #94918a }                     /* the row numbers */
+  #build-tab .drop { padding: 2px 10px; border: 0; background: none; color: #94918a }
+  #build-tab .drop:hover { color: #b3261e; background: none }
+  #build-tab .empty { color: #94918a }
+  /* Six columns and every one of them is in the paste, so the narrow-window rules above leave them alone. */
+  #build-tab th, #build-tab td { display: table-cell }
+
+  /* Putting rows on the build list gives a little back: the truck rolls, its lamp blinks and the count floats
+     up over the tab, in a color picked fresh each time (--pop). Now and then it comes up big (.crit), and the
+     copy - the thing all the picking was for - runs longest (.big). */
+  :root { --pop: #b25a00 }
+  @keyframes roll { from { opacity: 1; transform: translateX(-9px) } to { opacity: .3; transform: none } }
+  @keyframes blink { 0%, 100% { color: #b25a00 } 40% { color: var(--pop); text-shadow: 0 0 7px var(--pop) } }
+  @keyframes rise { from { opacity: 1 } to { opacity: 0; transform: translate(-50%, -28px) } }
+  @keyframes flash { 0%, 100% { color: inherit } 40% { color: var(--pop) } }
+  .logo.rolling .speed { color: var(--pop); animation: roll .45s var(--d) ease-out }
+  .logo.rolling .lamp { animation: blink .45s ease-in-out }
+  .logo.rolling.crit .speed { animation-duration: .5s; animation-iteration-count: 3 }
+  .logo.rolling.crit .lamp { animation-duration: .35s; animation-iteration-count: 4 }
+  .logo.rolling.big .speed { animation-duration: .9s; animation-iteration-count: 2 }
+  #buildTotals.flash div { animation: flash .5s ease-in-out 2 }
+  /* The jackpot is the copy's own, and comes after .big and .crit so it beats both: the truck sweeps long and
+     fast at once, and the totals go through three colours one after another, each a beat behind the last. */
+  .logo.rolling.jackpot .speed { animation-duration: .4s; animation-iteration-count: 5 }
+  .logo.rolling.jackpot .lamp { animation-duration: .3s; animation-iteration-count: 7 }
+  @keyframes jackpot { 0%, 100% { color: inherit } 20% { color: var(--pop) }
+                       50% { color: var(--pop2) } 80% { color: var(--pop3) } }
+  #buildTotals.jackpot div { animation: jackpot 1.1s ease-in-out 2 }
+  #buildTotals.jackpot div:nth-child(2) { animation-delay: .08s }
+  #buildTotals.jackpot div:nth-child(3) { animation-delay: .16s }
+  #buildTotals.jackpot div:nth-child(4) { animation-delay: .24s }
+  /* Fixed, not absolute: the header scrolls away in a long report and the count still has to be seen. */
+  .pop { position: fixed; z-index: 2; transform: translate(-50%, 0); pointer-events: none;
+         color: var(--pop); font-weight: 600; animation: rise .9s ease-out forwards }
+  .pop.crit { font-size: 1.9em; text-shadow: 0 0 12px var(--pop) }
+  /* Nothing here says anything the page doesn't say in words, so it can all go. */
+  @media (prefers-reduced-motion: reduce) {
+    .logo.rolling .speed, .logo.rolling .lamp, #buildTotals.flash div, #buildTotals.jackpot div,
+    .pop { animation: none }
+    .pop { display: none }
+  }
+
+  /* Help tab: kept to a readable width. */
+  .help { max-width: 96ch; line-height: 1.6 }
+  .help h1 { margin: 4px 0 8px; font-size: 1.5em }
+  .help h2 { margin: 28px 0 8px; font-size: 1.2em }
+  .help p, .help ul { margin: 8px 0 }
+  .help ul { padding-left: 2.5ch }
+  .help code { padding: 0 3px; background: #efece5; white-space: nowrap }
+  .help pre { padding: 8px 12px; overflow-x: auto; border: 1px solid #e0ddd6; background: #f2f0eb; line-height: 1.4 }
+</style>
+</head>
+<body>
+<header>
+<pre class="logo" role="img" aria-label="ovh">
+     <span class="frame">┌─────────────────────┐</span>
+<span class="speed">  ── </span><span class="frame">│</span> ▄▀▀▀▄  █   █  █   █ <span class="frame">│ ┌───┐</span>
+<span class="speed"> ─── </span><span class="frame">│</span> █   █  ▀▄ ▄▀  █▀▀▀█ <span class="frame">│═╡ <span class="lamp">▪</span> └┐</span>
+<span class="speed">   ─ </span><span class="frame">│</span>  ▀▀▀     ▀    ▀   ▀ <span class="frame">│ │    │</span>
+     <span class="frame">└──●─●───────────●─●──┘ └●──●┘</span></pre>
+<div class="brand"><b>overholser</b><br>open orders, sorted<br><span id="version"></span></div>
+</header>
+<!-- The tabs read as commands, like the filter bar: one word each, with the longer wording in the tooltip. -->
+<nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered">search</button><button
+  data-tab="inspect-tab" title="One trip, or one order, in full">inspect</button><button
+  id="buildTab" data-tab="build-tab" title="The list you build for the wave sheet">build</button><button
+  data-tab="help-tab" title="How to use this page">help</button></nav>
+<main>
+<section id="search-tab">
+  <div class="tools">
+    <label class="button">Open CSV<input type="file" id="csv" accept=".csv" hidden></label>
+    <span id="progress"></span>
+    <span id="filename"></span>
+  </div>
+  <!-- clear sits at the end of the line it empties, as plain text, and only while there is something to empty. -->
+  <div class="bar"><span>&gt;</span><input id="flags" autocomplete="off" spellcheck="false"
+    placeholder="type filters or click them below; Enter runs them"><button id="clear" hidden>clear filters (esc)</button></div>
+  <div id="message" class="message"></div>
+  <div id="tags"></div>
+  <div id="stats" class="stats">Pick an open orders export. It stays in this browser.</div>
+  <!-- Save acts on the table, so it sits with it rather than up with Open CSV. -->
+  <div class="tools table-tools">
+    <button id="bldSelected">bld (b)</button>
+    <button id="save">Save table (ctrl+s)</button>
+  </div>
+  <table id="report"></table>
+</section>
+<section id="inspect-tab" hidden>
+  <div class="bar"><span>trip or order &gt;</span><input id="tripNumber" autocomplete="off" spellcheck="false"
+    placeholder="a trip or order number; Enter shows it. Or click any number in search"></div>
+  <div id="tripMessage" class="message"></div>
+  <div id="tripView"></div>
+</section>
+<section id="build-tab" hidden>
+  <div class="tools table-tools">
+    <button id="copyBuild">Copy build (ctrl+c)</button>
+    <button id="dropSelected">drop (d)</button>
+    <button id="clearBuild">Clear (ctrl+d)</button>
+  </div>
+  <div id="buildMessage" class="message"></div>
+  <div id="buildTotals"></div>
+  <div id="buildView"></div>
+</section>
+
+<section id="help-tab" class="help" hidden></section>
+</main>
+
+<script>
+// The rules behind ovh.html: loading an open orders export, allocating stock, building the report rows and
+// their columns, and the filters. ovh.html loads this as a plain script and uses the names below directly.
+
+// Splits CSV text into rows of fields. Handles "quoted, fields" and "" escapes.
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = '', quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (c !== '\r') field += c;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// The only columns we keep from the extract, in this order.
+const COLUMNS = [
+  'Sales Channel', 'Customer', 'Business', 'Ship To', 'Order Date', 'Promise Date',
+  'Ship Date', 'Ship Date Category', 'Shipping Method', 'Shipping Category',
+  'Order Number', 'PO Number', 'On Hold', 'Line Status', 'Item No.', 'Description',
+  'Trip', 'Delivery', 'Ship and Cancel', 'Piece Qty', 'Cases', 'Dollars',
+  'Make or Buy', 'Distribution Onhand', 'Open Orders',
+];
+
+const DATES = new Set(['Order Date', 'Promise Date', 'Ship Date']);
+const NUMBERS = new Set(['Piece Qty', 'Cases', 'Dollars', 'Distribution Onhand', 'Open Orders']);
+
+// "07/13/2026" -> Date, "$74,908.80" -> 74908.8, everything else stays text.
+function convert(col, v) {
+  if (DATES.has(col)) { const [m, d, y] = v.split('/'); return new Date(y, m - 1, d); }
+  if (NUMBERS.has(col)) return Number(v.replace(/[$,]/g, ''));
+  return v;
+}
+
+// "Item No." -> "itemNo", "PO Number" -> "poNumber", "Ship and Cancel" -> "shipAndCancel"
+const toKey = col => col.replace(/\./g, '').split(' ')
+  .map((w, i) => i ? w[0].toUpperCase() + w.slice(1) : w.toLowerCase()).join('');
+
+const late = l => l.shipDateCategory.endsWith('Late');
+const total = (lines, key) => lines.reduce((t, l) => t + l[key], 0);
+const earliest = (lines, key) => new Date(Math.min(...lines.map(l => l[key])));
+
+// The value, or a count like "3 ship tos" when they differ. Blanks are ignored.
+function variations(values, noun) {
+  const distinct = [...new Set(values.filter(Boolean))];
+  return distinct.length > 1 ? `${distinct.length} ${noun}` : distinct[0] ?? '';
+}
+
+// The row's ship methods, each without its last part, for wide tables and the wave sheet:
+// "Fedex Express-Parcel-Ground" -> "Fedex Express-Parcel".
+const shipMethods = lines => variations(lines.map(l => l.shippingMethod.replace(/-[^-]*$/, '')), 'ship methods');
+
+// Home Depot ship tos are stores unless they say RDC: "HOME DEPOT USA INC 5023/TF - RDC DALLAS".
+const isRdc = shipTo => shipTo.includes('RDC');
+const count = (n, noun) => `${n.toLocaleString()} ${noun}${n === 1 ? '' : 's'}`;
+
+// The row's ship to, or a count when they differ: "3 ship tos". All-Home Depot rows say which kind
+// they are instead: "3 RDCs", "12 stores", "2 RDCs, 10 stores".
+function shipTos(lines) {
+  const distinct = [...new Set(lines.map(l => l.shipTo).filter(Boolean))];
+  if (distinct.length <= 1) return distinct[0] ?? '';
+  if (!lines.every(l => l.salesChannel.startsWith('HOME DEPOT'))) return count(distinct.length, 'ship to');
+  const rdcs = distinct.filter(isRdc).length;
+  return [rdcs && count(rdcs, 'RDC'), distinct.length - rdcs && count(distinct.length - rdcs, 'store')]
+    .filter(Boolean).join(', ');
+}
+
+// One status for a group of lines (a report row, or one of its orders), from the lines' statuses.
+function orderStatus(lines) {
+  const statuses = new Set(lines.map(l => l.lineStatus));
+  if (statuses.has('Released')) return 'Released';
+  if ([...statuses].every(s => s === 'Picked' || s === 'Ready')) return statuses.has('Picked') ? 'Picked' : 'Ready';
+  return 'Holds';
+}
+
+// Shipping Category -> mode (the same as the middle of the ship method, e.g. "SAIA-LTL-Standard").
+const MODES = { TRUCK: 'TL', LTL: 'LTL', PARCEL: 'Parcel' };
+
+// Sales channels that get inventory first when order dates tie, in this order ("HOME DEPOT" also takes
+// "HOME DEPOT.COM-OK"). All other channels come after them.
+const PRIORITY_CHANNELS = ['HOME DEPOT', 'LOWES', 'ACE', 'MENARDS'];
+const channelRank = l => {
+  const i = PRIORITY_CHANNELS.findIndex(c => l.salesChannel.startsWith(c));
+  return i < 0 ? PRIORITY_CHANNELS.length : i;
+};
+
+// Picked and Released lines are already being handled in the warehouse, so they take their stock first.
+const MOVING = new Set(['Picked', 'Released']);
+const moving = l => MOVING.has(l.lineStatus) ? 0 : 1;
+
+// Sets each line's allocation to 'alloc' or 'short'. Per item, lines take pieces from Distribution Onhand:
+// picked and released lines first, then oldest order date, then channel priority. Those moving lines are
+// always alloc, even past what's on hand - the warehouse has their stock, which the export's onhand may no
+// longer count - but they still use it up. Any other line that doesn't fit in what's left is short and takes
+// nothing, so a later, smaller line can still be alloc.
+function allocate(lines) {
+  for (const ls of Map.groupBy(lines, l => l.itemNo).values()) {
+    let left = ls[0].distributionOnhand;
+    for (const l of ls.toSorted((a, b) =>
+      moving(a) - moving(b) || a.orderDate - b.orderDate || channelRank(a) - channelRank(b))) {
+      l.allocation = moving(l) === 0 || l.pieceQty <= left ? 'alloc' : 'short';
+      if (l.allocation === 'alloc') left -= l.pieceQty;
+    }
+  }
+}
+
+// TEMPORARY: Home Depot's Flooring items, from "2026-09-12 Home Depot Item Category Master Reference.xlsx"
+// (Downloads). A HOME DEPOT-OK line with one of them makes its row "flr-mtl": tagged in Items, picked by --flr-mtl.
+// To take the feature out, delete this, flrMtl below, its ITEM_TAGS entry, and flr-mtl in rowMatches/OTHER_FLAGS.
+const FLR_MTL_ITEMS = new Set(`
+  31351 31352 31354 31356 31373 31380 31382 31396 31397 31398 31399 31400 31970 31975 31978 31979 31981 31982
+  31984 43311 43361 43364 43366 43373 43376 43378 43380 43381 43382 43383 43385 43872 43934 43975 43976 65110
+  66120 66121 66123 66126 66127 66128 66132 66133 66136 66137 66139 66149 66150 66159 66188 66189 66191 66200
+  66201 66202 66203 66210 66269 66270 66271 66273 66274 66275 66276 66277 66278 66279 66280 66281 66282 66283
+  66284 66285 66286 66287 66288 66289 66290 66291 66292 66293 66294 73792 73826 78014 84202 85092 85357 85365
+  85415 85423 85605 85613 85621 85639 95600 95601 95602 95603 95604 95605 95606 95607`.trim().split(/\s+/));
+const isFlrMtl = l => l.salesChannel === 'HOME DEPOT-OK' && FLR_MTL_ITEMS.has(l.itemNo);
+
+// What every group of lines (a report row, or one of its orders) gets computed.
+const summarize = lines => ({
+  lines,
+  status: orderStatus(lines),
+  // 'alloc' if no line is short, 'short' if every line is, 'split' if some are.
+  allocation: lines.every(l => l.allocation === 'alloc') ? 'alloc'
+    : lines.every(l => l.allocation === 'short') ? 'short' : 'split',
+  // Line status counts, most lines first: "Picked 597, Ready 67, Released 24".
+  lineStatuses: [...Map.groupBy(lines, l => l.lineStatus)].sort((a, b) => b[1].length - a[1].length)
+    .map(([status, ls]) => `${status} ${ls.length}`).join(', '),
+  shipDate: earliest(lines, 'shipDate'),
+  late: lines.some(late),
+  // Whether any line is a 144" item (the report tags those).
+  has144: lines.some(l => l.description.includes('144"')),
+  flrMtl: lines.some(isFlrMtl), // TEMPORARY, see FLR_MTL_ITEMS
+  cases: total(lines, 'cases'),
+  dollars: total(lines, 'dollars'),
+});
+
+// For sorting rows: soonest ship date first, then most dollars first.
+const soonestFirst = (a, b) => a.shipDate - b.shipDate || b.dollars - a.dollars;
+
+// A row's orders, each with just its lines on the row, soonest first: the inspect tab's Orders table.
+const rowOrders = lines => [...Map.groupBy(lines, l => l.orderNumber).values()].map(ls => ({
+  ...summarize(ls),
+  orderNumber: ls[0].orderNumber,
+  poNumber: ls[0].poNumber,
+  customer: ls[0].customer,
+  shipTo: ls[0].shipTo,
+  deliveries: variations(ls.map(l => l.delivery), 'deliveries'),
+  onHold: ls.some(l => l.onHold === 'OnHold'),
+})).sort(soonestFirst);
+
+// A row's items, biggest dollars first: the inspect tab's Items table. onhand is Distribution Onhand, the same on
+// every line of an item.
+const rowItems = lines => [...Map.groupBy(lines, l => l.itemNo).values()].map(ls => ({
+  ...summarize(ls),
+  itemNo: ls[0].itemNo,
+  description: ls[0].description,
+  orders: new Set(ls.map(l => l.orderNumber)).size,
+  pieces: total(ls, 'pieceQty'),
+  onhand: ls[0].distributionOnhand,
+})).sort((a, b) => b.dollars - a.dollars);
+
+// Takes the CSV text and returns the report rows, all grouping and computing done once, so the page only filters,
+// sorts and formats. A row is the lines on one trip, or one order's lines not on a trip: an order split across two
+// trips is on both, each with only its own lines. Each line is the COLUMNS above as camelCase properties, plus
+// its allocation.
+// A report row out of any run of lines: a whole trip at load, or the one order of it that was looked up or
+// put on the build list. Everything the report, the inspect tab and waveLine read off a row.
+const makeRow = ls => {
+  const orders = rowOrders(ls), items = rowItems(ls);
+  return {
+    ...summarize(ls),
+    trip: ls[0].trip,
+    orders,
+    orderNumbers: orders.map(o => o.orderNumber),
+    items,
+    itemNos: items.map(i => i.itemNo),
+    shipTos: shipTos(ls),
+    shippingMethods: shipMethods(ls),
+  };
+};
+
+function loadOrders(text) {
+  const [header, ...rows] = parseCsv(text);
+  const idx = COLUMNS.map(c => {
+    if (!header.includes(c)) throw new Error(`CSV is missing column: ${c}`);
+    return header.indexOf(c);
+  });
+  const lines = rows.map(r => Object.fromEntries(COLUMNS.map((c, i) => [toKey(c), convert(c, r[idx[i]])])));
+  allocate(lines);
+
+  return [...Map.groupBy(lines, l => l.trip || `order ${l.orderNumber}`).values()].map(makeRow);
+}
+
+const money = n => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const mdy = d => d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+// Statuses that show in the warning color.
+const WARNING_STATUSES = ['Holds', 'Awaiting', 'Booked', 'Entered'];
+const warnStatus = status => WARNING_STATUSES.includes(status) && 'warning';
+
+// The report's columns. width: in characters, the page's share for the column (see ovh.html). color(row): the
+// color class for the cell, if any: 'danger' (red), 'warning' (orange). Allocation is red when short, orange when
+// split; Line Statuses is orange when the row's own status (what --holds and the other status flags filter on)
+// is Holds. Items, last, is as many of the row's items as fit (see itemsCell), after its tags: 144" (orange)
+// when any of the row's lines is a 144" item, flr-mtl (cyan, 'cyan') when the row is flrMtl.
+const TAG144 = '144"';
+const ITEMS_WIDTH = 34;
+// The tags that can start an Items cell, in order: [text, the row property that turns it on, its color class].
+const ITEM_TAGS = [[TAG144, 'has144', 'warning'], ['flr-mtl', 'flrMtl', 'cyan']];
+// The tags a row (or one of its items) starts its cell with, each followed by a space. A column with tags: true
+// puts them in front of its value and the page colors them (see td in ovh.html).
+const itemTags = row => ITEM_TAGS.filter(([, key]) => row[key]).map(([text]) => text + ' ').join('');
+
+// As many of the row's items as fit, biggest dollars first, after its tags, ending in "..." if any are left out.
+function itemsCell(row, width) {
+  const tag = itemTags(row);
+  let text = '';
+  for (const [i, itemNo] of row.itemNos.entries()) {
+    const more = text ? `${text} ${itemNo}` : itemNo;
+    const last = i === row.itemNos.length - 1;
+    if ((tag + more + (last ? '' : ' ...')).length > width) return (tag + text).trimEnd() + ' ...';
+    text = more;
+  }
+  return tag + text;
+}
+// Columns the report and the inspect tab's tables share.
+const ALLOC_COLUMN = { heading: 'Alloc', width: 5, value: r => r.allocation,
+  color: r => ({ short: 'danger', split: 'warning' })[r.allocation] };
+const TOTAL_COLUMNS = [
+  { heading: 'Lines', width: 5, right: true, value: r => r.lines.length },
+  { heading: 'Cases', width: 6, right: true, value: r => r.cases.toLocaleString() },
+  { heading: 'Dollars', width: 11, right: true, value: r => money(r.dollars) },
+];
+const STATUSES_COLUMN = { heading: 'Line Statuses', width: 34, value: r => r.lineStatuses, color: r => warnStatus(r.status) };
+const SHIP_DATE_COLUMN = { heading: 'Ship Date', width: 10, value: r => mdy(r.shipDate), color: r => r.late && 'danger' };
+
+// id: shown in the order number color. find: the numbers in the cell the page links to the inspect tab, where
+// they're looked up (see td in ovh.html); every trip and order number the page shows is one.
+const REPORT_COLUMNS = [
+  { heading: 'Trip', width: 7, find: r => [r.trip], value: r => r.trip },
+  // Three order numbers, then "..." if there are more; the Orders column counts them.
+  { heading: 'Order Numbers', width: 30, id: true, find: r => r.orderNumbers, value: r =>
+    r.orderNumbers.slice(0, 3).join(' ') + (r.orderNumbers.length > 3 ? ' ...' : '') },
+  { heading: 'Ship To', width: 40, value: r => r.shipTos },
+  { heading: 'Ship Method', width: 26, value: r => r.shippingMethods },
+  SHIP_DATE_COLUMN,
+  { heading: 'Orders', width: 6, right: true, value: r => r.orderNumbers.length },
+  ...TOTAL_COLUMNS,
+  ALLOC_COLUMN,
+  STATUSES_COLUMN,
+  { heading: 'Items', width: ITEMS_WIDTH, tags: true, value: r => itemsCell(r, ITEMS_WIDTH) },
+];
+
+// The inspect tab's tables: one row per order on the trip, and one per item. Hold is the order's On Hold flag.
+const TRIP_ORDER_COLUMNS = [
+  { heading: 'Order', width: 9, id: true, find: o => [o.orderNumber], value: o => o.orderNumber },
+  { heading: 'PO', width: 11, value: o => o.poNumber },
+  { heading: 'Delivery', width: 11, value: o => o.deliveries },
+  { heading: 'Customer', width: 24, value: o => o.customer },
+  { heading: 'Ship To', width: 40, value: o => o.shipTo },
+  SHIP_DATE_COLUMN,
+  { heading: 'Hold', width: 4, value: o => o.onHold ? 'yes' : '', color: o => o.onHold && 'warning' },
+  ALLOC_COLUMN,
+  ...TOTAL_COLUMNS,
+  STATUSES_COLUMN,
+];
+const TRIP_ITEM_COLUMNS = [
+  { heading: 'Item', width: 13, value: i => i.itemNo },
+  // The item's own tags start the cell, the way they start the report's Items: flr-mtl if it's one of Home
+  // Depot's Flooring items on a HOME DEPOT-OK line, 144" if it is a 144" item.
+  { heading: 'Description', width: 40, tags: true, value: i => itemTags(i) + i.description },
+  { heading: 'Orders', width: 6, right: true, value: i => i.orders },
+  { heading: 'Pieces', width: 7, right: true, value: i => i.pieces.toLocaleString() },
+  { heading: 'Onhand', width: 8, right: true, value: i => i.onhand.toLocaleString() },
+  ALLOC_COLUMN,
+  ...TOTAL_COLUMNS,
+  STATUSES_COLUMN,
+];
+
+// The biggest rows by dollars that together make up `share` of their total: --dollars keeps the top 80%.
+// Unlike the other filters this one compares rows against each other, so it runs after they pick the rows.
+function topDollars(rows, share = 0.8) {
+  const goal = total(rows, 'dollars') * share;
+  const sorted = rows.toSorted((a, b) => b.dollars - a.dollars);
+  let sum = 0, n = 0;
+  while (n < sorted.length && sum < goal) sum += sorted[n++].dollars;
+  return sorted.slice(0, n);
+}
+
+// The report's counts line, over every row it covers.
+const ordersTotals = rows =>
+  `${rows.length.toLocaleString()} rows: ${new Set(rows.flatMap(r => r.orderNumbers)).size.toLocaleString()} orders, ` +
+  `${rows.reduce((t, r) => t + r.lines.length, 0).toLocaleString()} lines, ${total(rows, 'cases').toLocaleString()} cases, ${money(total(rows, 'dollars'))}`;
+
+// A row's customers, each named once, the way its order numbers are: a count would lose them.
+const customers = r => [...new Set(r.lines.map(l => l.customer).filter(Boolean))].join(', ');
+
+// One row of a report row for the wave sheet, tab separated, eight cells: trip, its order numbers, two the
+// sheet fills in itself, customer, ship method, ship date, cases. Customers are listed like the order numbers,
+// so none are lost; ship method says how many when the trip has more than one, the way the report does; the
+// ship date is the trip's earliest, as in the report.
+// The lists have a space after the comma because Excel reads a pasted cell as if it were typed: "54055633,54055634"
+// is one huge number to it (the comma is its thousands separator), while the space makes the cell plain text.
+const waveLine = r => [
+  r.trip,
+  r.orderNumbers.join(', '),
+  '',
+  '',
+  customers(r),
+  r.shippingMethods,
+  mdy(r.shipDate),
+  r.cases,
+].join('\t');
+
+// The build list holds what was added rather than the rows themselves: a new export makes new rows, so every
+// entry is looked up again each time the list is drawn. An entry is { trip, order }, order being '' for a whole
+// trip or the one order of it that was added. Gone from this export: undefined, and the list drops it.
+function buildRow(entry, data) {
+  const row = data.find(r => r.trip === entry.trip && (entry.trip || r.orderNumbers.includes(entry.order)));
+  if (!row) return;
+  if (!entry.order) return row;
+  const order = row.orders.find(o => o.orderNumber === entry.order);
+  return order && makeRow(order.lines);
+}
+
+// The build table's columns: the wave sheet's eight cells less the two blanks it fills in itself, in its order,
+// so the table reads the way what you paste will. These and waveLine have to stay in step.
+const BUILD_COLUMNS = [
+  { heading: 'Trip', width: 7, find: r => [r.trip], value: r => r.trip },
+  { heading: 'Order Numbers', width: 30, id: true, find: r => r.orderNumbers, value: r => r.orderNumbers.join(' ') },
+  { heading: 'Customer', width: 24, value: customers },
+  { heading: 'Ship Method', width: 26, value: r => r.shippingMethods },
+  SHIP_DATE_COLUMN,
+  { heading: 'Cases', width: 6, right: true, value: r => r.cases.toLocaleString() },
+];
+
+// Name filters: [flag, line property, match]. The only filters that take a value: a row matches if any of its
+// lines does. Names match any part, ignoring case ("ace hdw" matches "ACE HDW-OK #1234"); order, trip and
+// delivery numbers match exactly, so 1234 doesn't pick 51234.
+const same = (number, want) => number === want;
+const FILTERS = [
+  ['customer', 'customer'],
+  ['shipto', 'shipTo'],
+  ['order', 'orderNumber', same],
+  ['trip', 'trip', same],
+  ['delivery', 'delivery', same],
+  ['item', 'itemNo', same],
+];
+
+// The plain flags that aren't tags (see rowMatches and, for dollars, topDollars).
+const OTHER_FLAGS = ['144', 'flr-mtl', 'dollars'];
+
+const LATE = ['9+ Days Late', '4-8 Days Late', '1-3 Days Late'];
+
+// The consumer sales channels (Adam's list, in his order): what --consumer picks.
+const CONSUMER_CHANNELS = ['HOME DEPOT-OK', 'HOME DEPOT.COM-OK', 'LOWES-BR', 'LOWES-NO', 'LOWES-OK', 'MENARDS-OK',
+  'ACE HDW-OK', 'ORGILL-OK', 'DISTRIBUTORS&FIELD SALES-OK', 'ECOMMERCE-OK'];
+
+// Tag filters: flags that take no value, in groups. flags: flag -> what it picks. Flags in a group stack
+// (--today --tomorrow is either day); different groups must all match. A group tests either lines (line: a row
+// matches if any of its lines does) or whole rows (row).
+const TAGS = {
+  // The export's Ship Date Category, as of when it was run.
+  date: {
+    flags: {
+      due: [...LATE, 'Today', 'Tomorrow'],
+      late: LATE,
+      '9plus': ['9+ Days Late'],
+      '4to8': ['4-8 Days Late'],
+      '1to3': ['1-3 Days Late'],
+      today: ['Today'],
+      tomorrow: ['Tomorrow'],
+      future: ['Future'],
+    },
+    line: (l, categories) => categories.includes(l.shipDateCategory),
+  },
+  // Only the ten consumer sales channels, exactly. A group of its own, so it narrows the channel flags instead of
+  // adding to them: --consumer --thd is just Home Depot.
+  consumer: {
+    flags: { consumer: CONSUMER_CHANNELS },
+    line: (l, channels) => channels.includes(l.salesChannel),
+  },
+  // What the Sales Channel starts with: --thd is HOME DEPOT-OK only, --lowes is any LOWES-. Other channels
+  // (UNKNOWN-OK, CHEMICAL-OK and the like) have no flag of their own.
+  channel: {
+    flags: {
+      thd: 'HOME DEPOT-OK',
+      '.com': 'HOME DEPOT.COM-OK',
+      lowes: 'LOWES',
+      menards: 'MENARDS-OK',
+      ace: 'ACE HDW-OK',
+      orgill: 'ORGILL-OK',
+      fsd: 'DISTRIBUTORS&FIELD SALES-OK',
+      ecom: 'ECOMMERCE-OK',
+    },
+    line: (l, channel) => l.salesChannel.startsWith(channel),
+  },
+  allocation: {
+    flags: { alloc: 'alloc', split: 'split', short: 'short' },
+    row: (r, allocation) => r.allocation === allocation,
+  },
+  // The row's status (see orderStatus).
+  status: {
+    flags: { released: 'Released', ready: 'Ready', picked: 'Picked', holds: 'Holds' },
+    row: (r, status) => r.status === status,
+  },
+  // From Shipping Category; a line with none has no mode.
+  mode: {
+    flags: Object.fromEntries(Object.values(MODES).map(mode => [mode.toLowerCase(), mode])), // tl: 'TL', ...
+    line: (l, mode) => MODES[l.shippingCategory] === mode,
+  },
+};
+
+// A name filter's values. Giving the flag twice and a comma list both stack: --shipto a --shipto b is --shipto a,b.
+const list = v => (v ?? []).flatMap(one => one.split(',')).map(one => one.trim()).filter(Boolean);
+// True if text contains part, ignoring case.
+const contains = (text, part) => text.toUpperCase().includes(part.toUpperCase());
+// The tag groups given, each with what its flags picked: { today: true, lowes: true } -> [[date, [['Today']]], [channel, ['LOWES']]].
+const tagsGiven = filters => Object.values(TAGS)
+  .map(group => [group, Object.keys(group.flags).filter(flag => filters[flag]).map(flag => group.flags[flag])])
+  .filter(([, picked]) => picked.length);
+
+// True if the lines match every name filter and line tag group given, each by at least one line (not always the
+// same one), e.g. { customer: ['ace'], today: true }.
+const linesMatch = (lines, filters) =>
+  FILTERS.every(([name, key, match = contains]) => {
+    const wants = list(filters[name]);
+    return !wants.length || lines.some(l => wants.some(want => match(l[key], want)));
+  })
+  && tagsGiven(filters).every(([group, picked]) => !group.line || lines.some(l => picked.some(p => group.line(l, p))));
+
+// True if a report row matches every filter given, e.g. { lowes: true, holds: true, today: true }: the name and
+// line filters by any of its lines, the row tags by the row itself. 144: only rows with a 144" item.
+// flr-mtl (TEMPORARY): only flrMtl rows.
+const rowMatches = (row, filters) => linesMatch(row.lines, filters)
+  && tagsGiven(filters).every(([group, picked]) => !group.row || picked.some(p => group.row(row, p)))
+  && (!filters['144'] || row.has144)
+  && (!filters['flr-mtl'] || row.flrMtl);
+</script>
+<script>
+// The page: tabs, the orders report, the help. All the loading, allocating and filtering is ovh.js's,
+// loaded above as a plain script: everything it defines at the top level is a name this script can use.
+// What bundle.js puts in for the built "ovh v<version>.html", since the page can't read files itself:
+// { version } from package.json and { help } from HELP.md.
+const BUNDLE = {"version":"0.5.0","help":"# ovh help\r\n\r\novh shows the open orders export as a report you can filter, check and copy\r\ninto an email. This is an early test version: if something is confusing, wrong\r\nor missing, tell whoever sent you this file.\r\n\r\n## Getting started\r\n\r\n- Open this file in a web browser, like Chrome or Edge. Nothing to install.\r\n- Click **Open CSV** and pick the open orders export (a `.csv` file) from the\r\n  office system.\r\n- A bar next to the button shows it loading; a big export takes a few\r\n  seconds, most of it on \"sorting orders\".\r\n- The report appears. Narrow it down with the filters: see **Filtering**,\r\n  next.\r\n- To start over with a newer export, click **Open CSV** again.\r\n\r\nYour export stays on your computer. Nothing is uploaded or saved anywhere:\r\nclose or reload the page and it's gone.\r\n\r\n## Filtering\r\n\r\nType filters in the bar at the top and press Enter, or click the buttons under\r\nit. Clicking a button again takes it back off. To start over, press **Esc**,\r\nor click the word at the right of the bar that says the same.\r\n\r\n**Esc does the nearer job first.** With rows picked (see **Building a list**,\r\nbelow) it lets go of them and the word reads \"clear picked (esc)\"; with none\r\npicked it empties the bar and it reads \"clear filters (esc)\". So Esc twice\r\nalways leaves you with nothing picked and no filters, wherever you started.\r\nThe word only shows when there's something to clear.\r\n\r\nFilters of the same kind mean either one: `--today --tomorrow` is rows due\r\ntoday or tomorrow, and `--lowes --menards` is either channel. Different kinds\r\nmust all match: `--today --lowes --short` is Lowes rows due today that are\r\nshort.\r\n\r\nShip date (as of when the export was run):\r\n- `--due` - late, today or tomorrow\r\n- `--late` - any days late; or just `--9plus`, `--4to8` or `--1to3` days late\r\n- `--today`, `--tomorrow`\r\n- `--future` - after tomorrow\r\n\r\nConsumer:\r\n- `--consumer` - only the consumer sales channels: Home Depot, homedepot.com,\r\n  Lowes, Menards, Ace, Orgill, distributors and field sales, and ecommerce.\r\n  With a sales channel below it narrows instead of adding:\r\n  `--consumer --thd` is just Home Depot.\r\n\r\nSales channel:\r\n- `--thd` - Home Depot stores and RDCs (not homedepot.com)\r\n- `--.com` - homedepot.com\r\n- `--lowes`, `--menards`, `--ace`, `--orgill`\r\n- `--fsd` - distributors and field sales\r\n- `--ecom` - ecommerce\r\n\r\nAllocation (whether there's stock, see **Allocation** below):\r\n- `--alloc`, `--split`, `--short`\r\n\r\nStatus:\r\n- `--released`, `--ready`, `--picked`, `--holds`\r\n\r\nHow it ships:\r\n- `--tl` (truckload), `--ltl`, `--parcel`\r\n\r\nOther:\r\n- `--144` - only rows holding a 144\" item.\r\n- `--flr-mtl` - only rows with a Home Depot (not homedepot.com) line for one of\r\n  Home Depot's Flooring items. For now only: it may go away.\r\n- `--dollars` - only the biggest rows that together make up 80% of the dollars\r\n  of whatever else you filtered.\r\n\r\nBy name or number - type it after the filter:\r\n- `--customer \"ace hdw\"` - customer. Any part of the name works and capitals\r\n  don't matter. Put quotes around a name with spaces.\r\n- `--shipto morrow` - ship to, the same way.\r\n- `--order 1234` - an order number. Type the whole number. Shows the order's\r\n  whole trip, with the other orders on it.\r\n- `--trip 5678`, `--delivery 0099` - a trip or delivery number. Type the whole\r\n  number, including any zeros at the start.\r\n- `--item 66127` - an item number, the same way. Shows every row with a line\r\n  for that item.\r\n- For more than one name, separate them with commas: `--shipto \"morrow,moxee\"`,\r\n  `--order 1234,5678`.\r\n\r\n## Reading the report\r\n\r\nEach row is one truck trip. Orders that aren't on a trip yet get a row of their\r\nown. An order split across trips shows up on each trip, with just its lines for\r\nthat trip.\r\n\r\nRows are listed by ship date, soonest first, then biggest dollars first. A\r\ndivider splits them into **LATE** (in red), **TODAY**, **TOMORROW** and\r\n**FUTURE** (as of when the export was run), each with its row count and\r\ndollars. A row goes by its earliest ship date.\r\n\r\n- **Trip** - the trip number, blank if the order isn't on a trip yet.\r\n- **Order Numbers** - the first three orders on the row, then `…` if there\r\n  are more. **Orders** counts them all.\r\n- **Ship To** - where it's going. When the orders go to different places it\r\n  says how many (\"3 ship tos\"). Home Depot rows say \"3 RDCs\" or \"12 stores\".\r\n- **Ship Method** - the carrier, or how many when they differ.\r\n- **Ship Date** - the earliest ship date on the row.\r\n- **Lines**, **Cases**, **Dollars** - totals for the row.\r\n- **Alloc** - whether there's stock for the row (see below).\r\n- **Line Statuses** - how many lines are at each status, most first.\r\n- **Items** - the row's item numbers, biggest dollars first.\r\n\r\nA cell that's too narrow to show everything ends in `…`. Hover over it to see\r\nall of it. On a small screen some columns are hidden; they're still in the\r\ntable when you copy it.\r\n\r\n## Looking at one trip or one order\r\n\r\nThe **inspect** tab shows everything about one trip, or about one order.\r\nClick any trip or order number on the page - in the report, or in a trip's own\r\nlist of orders - or type a number in the inspect tab's bar and press Enter.\r\n\r\nA **trip** number shows the whole trip. An **order** number shows that order\r\non its own, headed \"Order 54001840 on Trip 7989649\": the totals, the items and\r\nthe lines are the order's, not its trip's. Click that trip number in the\r\nheading to see the whole trip it's part of. An order split across trips shows\r\neach part, one under the other, so you can see what's on each trip.\r\n\r\nOn top: what it adds up to, then the ship method, ship date, ship to,\r\nstatus, allocation, short lines, orders on hold and sales channels. Under that\r\nare two tables:\r\n- **Orders** - each order with its PO, delivery, customer, ship\r\n  to, ship date, whether it's on hold, allocation and totals. Looking up one\r\n  order, that's the one row.\r\n- **Items** - each item with its description, how many orders and\r\n  pieces want it, the warehouse's onhand, allocation and totals. Short and\r\n  split items come first, so what's missing is at the top. A cyan `flr-mtl` or\r\n  orange `144\"` tag starts the description of an item that is one (see\r\n  **Colors**).\r\n\r\nOn a phone some columns are hidden.\r\n\r\n**bld (ctrl+b)**, at the right of the heading, puts what the heading names on\r\nthe build list (see **Building a list for the wave sheet**, next) - the trip,\r\nor the order when you looked an order up. **Ctrl+B** does the same without\r\nreaching for the mouse, so you can type a number, press Enter to see it, then\r\nCtrl+B to add it.\r\n\r\n## Building a list for the wave sheet\r\n\r\nThe **build** tab is a list you put together yourself, a trip or an order at a\r\ntime, and then paste into the wave sheet in one go.\r\n\r\n**Click a row** to pick it. It goes a shade darker with a mark down its left\r\nedge. Click as many rows as you want - each click picks a row, and clicking a\r\npicked row lets it go again. The **bld** button, above the table on the right,\r\ncounts them: it reads \"bld 5 (b)\" when five rows are picked. Click it, or just\r\npress **b**, and all five go on the list at once. The rows let go of\r\nthemselves once they're on, so you can carry straight on picking the next few.\r\n\r\nPress **Esc** to let go of all of them; press it again and it empties the\r\nfilter bar. Changing tabs lets go of them too, so what the button says is\r\nalways what you can see.\r\n\r\nThe truck up in the corner gives a little roll every time rows go on, and the\r\ncount floats up over the tab in whatever color it feels like. Every so often\r\nit comes up bigger than usual - there's nothing behind that, it's just there.\r\nCopying the list gets a longer run of its own, since that's the bit the picking\r\nwas for, and now and then it comes up as a proper jackpot.\r\n\r\nClick a row anywhere but on a number: clicking a trip or order number still\r\ntakes you to the inspect tab, the way it always has.\r\n\r\n- A row on the **search** tab is a trip, so it puts the whole trip on.\r\n- A row in a trip's **Orders** table, on the inspect tab, is one order, so it\r\n  puts just that order on, with only its own cases and its own ship date. The\r\n  trip it's on still shows in the Trip column.\r\n- Each row puts **itself** on and nothing else. An order split across two\r\n  trips is two rows, so picking one puts that trip's part on; pick both rows\r\n  if you want both parts.\r\n- **bld (ctrl+b)** at the right of a heading on the inspect tab puts what that\r\n  heading names on, without picking any row first.\r\n- Adding something already on the list does nothing, so nothing can be pasted\r\n  into the sheet twice.\r\n\r\nAcross the top the list says what it comes to: how many rows, orders, lines\r\nand cases. Under that are the six things the wave sheet wants - trip, order\r\nnumbers, customer, ship method, ship date and cases - numbered down the side.\r\n\r\n**Copy build (ctrl+c)** puts the whole list on the clipboard, one line per row, and\r\n**Ctrl+V** pastes it into the sheet. Each value lands in its own cell, and the\r\norder numbers stay as they are instead of turning into one long number. Two\r\nblank cells go in between the order numbers and the customer, which is where\r\nthe sheet fills in its own - so what you paste lines up even though the table\r\ndoesn't show them. A trip going to more than one customer lists them all; more\r\nthan one ship method says how many (\"2 ship methods\").\r\n\r\nTo take rows off, pick them the same way and press **d**, or use the **drop**\r\nbutton above the table, which counts them too. The small **x** at the end of a\r\nrow takes off that one row. **Clear (ctrl+d)** empties the list - all of it at\r\nonce, with no way back, so mind that one.\r\n\r\nOpening a newer export keeps your list and reads every row's numbers from the\r\nnew export, so the cases and dates are never stale. Anything that isn't in the\r\nnew export any more - a trip that has shipped - drops off the list. Closing or\r\nreloading the page empties it, like everything else here.\r\n\r\n## Colors\r\n\r\n- **Red date** - the row is late.\r\n- **Red Alloc** - `short`: none of the row's lines have stock.\r\n- **Orange Alloc** - `split`: some lines have stock and some don't.\r\n- **Orange Line Statuses** - the row is on hold: none of its lines are\r\n  Released, and at least one is still Entered, Booked or Awaiting.\r\n- **Orange 144\"** at the start of Items - the row holds a 144\" item.\r\n- **Cyan flr-mtl** at the start of Items - the row has a Home Depot line for a\r\n  Flooring item (see `--flr-mtl`). In the inspect tab both tags start the item's\r\n  Description instead, so they mark the one item they belong to.\r\n\r\n## Allocation\r\n\r\nThe report works out which lines the stock on hand can cover, item by item.\r\nStock goes first to lines already Picked or Released, then to the oldest\r\norders, then by customer: Home Depot, Lowes, Ace, Menards, then everyone else.\r\nA line is `alloc` if its whole quantity is covered and `short` if it isn't.\r\nPicked and Released lines always count as `alloc`, since the warehouse already\r\nhas their stock. A row is `alloc`, `short` or `split` depending on its lines.\r\n\r\n## The numbers on top\r\n\r\nThey cover just the rows your filters picked.\r\n\r\n- The first line counts the rows, orders, lines, cases and dollars.\r\n- **Late** - rows with a late ship date.\r\n- **lines short** and **lines alloc** - lines without and with stock. Together\r\n  they add up to all the lines.\r\n- **Holds** - rows on hold.\r\n- **144\"** - rows holding a 144\" item.\r\n- **Ship dates** - the earliest and latest ship date.\r\n- **Biggest channel** - the sales channel with the most dollars.\r\n\r\n## Sending the report on\r\n\r\n**Save table (ctrl+s)**, just above the table, saves the report as a file in\r\nyour Downloads, named with the date and your filters, like\r\n`2026-09-16 ovh --late --thd.html`, and headed with the filters, the export's\r\nname and the counts. Open it in your browser, or attach it to an email.\r\n\r\nThe file has the whole table in it, colors included - every row your filters\r\npicked and every column, even ones hidden on a small screen. Each cell stays\r\non one line, and Items shows the row's biggest few items, then `…` if there\r\nare more.\r\n\r\n## The keys\r\n\r\n- **b** - put the picked rows on the build list.\r\n- **d** - take the picked rows off the build list.\r\n- **Esc** - let go of the picked rows; again, empty the filter bar.\r\n- **Ctrl+B** - on inspect, put what the heading names on the list.\r\n- **Ctrl+C** - on build, copy the list. (With something selected on the page\r\n  it copies that instead, the way it normally would.)\r\n- **Ctrl+D** - on build, empty the list.\r\n- **Ctrl+S** - on search, save the table.\r\n"};
+version.textContent = BUNDLE ? `v${BUNDLE.version}` : 'dev, not bundled';
+
+// Tabs: each button shows the section its data-tab names and hides the others.
+function showTab(tab) {
+  for (const button of tabs.children) button.classList.toggle('on', button.dataset.tab === tab);
+  for (const section of document.querySelectorAll('main > section')) section.hidden = section.id !== tab;
+  unpick();
+}
+tabs.addEventListener('click', e => e.target.dataset.tab && showTab(e.target.dataset.tab));
+
+// ---- Search tab ----
+
+let data = null;   // the export's report rows (loadOrders), once one is picked
+let rows = [];     // the rows the flags picked last, in report order - what the stats and Copy table cover
+let shownFlags = ''; // the filter line those rows came from (the bar may since hold a typo)
+
+// The columns Copy table uses: the report's own, with its " ..." for "more than shown" turned into the "…" the
+// browser ends a cut cell with. Items keeps to the report's width (its first few items), since an email doesn't
+// cut cells to fit.
+const COLUMNS_COPY = REPORT_COLUMNS.map(c => ['Order Numbers', 'Items'].includes(c.heading)
+  ? { ...c, value: r => c.value(r).replace(/ \.\.\.$/, '…') } : c);
+// The page's columns: the same, but Items lists every item and the browser cuts the cell to fit the window.
+const COLUMNS_HTML = COLUMNS_COPY.map(c => c.heading === 'Items' ? { ...c, value: r => itemsCell(r, 999) } : c);
+// Columns of 13 characters or less (dates, money, counts, numbers) keep their exact width (plus a character for
+// the gap); the wide text columns share whatever the window has left, so the table always fits it and only they
+// get cut short.
+const th = c => `<th class="${slug(c)}${c.right ? ' right' : ''}"${c.width <= 13 ? ` style="width:${c.width + 1}ch"` : ''}>${c.heading}</th>`;
+
+const mark = (text, color) => color ? `<span class="${color}">${esc(text)}</span>` : esc(text);
+const slug = c => c.heading.toLowerCase().replace(/[^a-z]+/g, '-');
+const esc = text => text.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// One cell. title shows the whole value when the column is too narrow for it. A color marks just the text, not
+// the whole cell; in Items it's only the tags at the front (144", flr-mtl), each in its own color. The columns
+// (and ITEM_TAGS) in ovh.js name the color class. The column's find names the trip and order numbers in the
+// cell: each one becomes a link that looks it up in the inspect tab (the cell holds them space-separated).
+function td(c, r) {
+  const text = String(c.value(r));
+  const classes = [slug(c), c.right && 'right', c.id && 'id'].filter(Boolean).join(' ');
+  const find = c.find?.(r).filter(Boolean) ?? [];
+  const color = c.color?.(r);
+  const tags = c.tags ? ITEM_TAGS.filter(([, key]) => r[key]) : [];
+  const body = tags.length
+    ? tags.map(([tag, , tagColor]) => `<span class="${tagColor}">${esc(tag)}</span> `).join('')
+      + esc(tags.reduce((rest, [tag]) => rest.slice(tag.length + 1), text)) // what follows "144" flr-mtl "
+    : find.length ? linkNumbers(esc(text), find)
+      : mark(text, color);
+  return `<td class="${classes}" title="${esc(text)}">${body}</td>`;
+}
+
+// Every number of find's in the (already escaped) text, as a link. The last one can end in the "…" that means
+// there are more than the cell shows, so the link takes the number and leaves the ellipsis beside it.
+const linkNumbers = (text, find) => text.split(' ').map(word => {
+  const number = word.replace(/…$/, '');
+  return find.includes(number) ? `<a data-find="${number}">${number}</a>${word.slice(number.length)}` : word;
+}).join(' ');
+
+// What the rows picked add up to, under the report's counts line. Most of them are some of the rows,
+// so they read the same way: "23 rows, $95,116.60".
+const worth = rs => `${count(rs.length, 'row')}, ${money(total(rs, 'dollars'))}`;
+// Allocation is counted in lines, not rows, since a split row holds both kinds: "412 lines short, $95,116.60".
+const lineWorth = (rs, allocation) => {
+  const ls = rs.flatMap(r => r.lines).filter(l => l.allocation === allocation);
+  return `${ls.length.toLocaleString()} line${ls.length === 1 ? '' : 's'} ${allocation}, ${money(total(ls, 'dollars'))}`;
+};
+// [label, value]; the allocation ones say what they are in the value, so they have no label.
+const STATS = [
+  ['Late', rs => worth(rs.filter(r => r.late))],
+  ['', rs => lineWorth(rs, 'short')],
+  ['', rs => lineWorth(rs, 'alloc')],
+  ['Holds', rs => worth(rs.filter(r => r.status === 'Holds'))],
+  ['144"', rs => worth(rs.filter(r => r.has144))],
+  ['Ship dates', rs => `${mdy(earliest(rs, 'shipDate'))} to ${mdy(new Date(Math.max(...rs.map(r => r.shipDate))))}`],
+  // The channel with the most dollars on these rows, over their lines (a row can hold more than one).
+  ['Biggest channel', rs => {
+    const [channel, ls] = [...Map.groupBy(rs.flatMap(r => r.lines), l => l.salesChannel)]
+      .sort((a, b) => total(b[1], 'dollars') - total(a[1], 'dollars'))[0];
+    return `${channel}, ${money(total(ls, 'dollars'))}`;
+  }],
+];
+
+// Every flag the bar takes: the plain ones (tags and OTHER_FLAGS), and the name filters, which take a value.
+const TAG_GROUPS = Object.values(TAGS).map(group => Object.keys(group.flags));
+const PLAIN_FLAGS = [...TAG_GROUPS.flat(), ...OTHER_FLAGS];
+const NAMES = FILTERS.map(([name]) => name);
+
+// '--today --shipto "ace hdw"' -> { today: true, shipto: ['ace hdw'] }, what rowMatches takes.
+function parseFlags(text) {
+  const opts = {};
+  const tokens = text.match(/"[^"]*"|\S+/g) ?? [];
+  for (let i = 0; i < tokens.length; i++) {
+    const [, name, inline] = /^--([^=]+)(?:=(.*))?$/.exec(tokens[i]) ?? [];
+    if (PLAIN_FLAGS.includes(name)) opts[name] = true;
+    else if (!NAMES.includes(name)) throw new Error(`Unknown option '${tokens[i]}'`);
+    else {
+      const value = inline ?? tokens[++i];
+      if (value === undefined) throw new Error(`--${name} needs a value`);
+      (opts[name] ??= []).push(value.replace(/^"|"$/g, ''));
+    }
+  }
+  return opts;
+}
+
+// The whole report: the counts line, a few numbers about the rows, then every row the flags pick, soonest
+// ship date first. No one page limit, but only the first screenful is drawn now and the rest a tick later
+// (see drawRows): building 1,500 rows takes a few hundred milliseconds, and clearing the filters asks for
+// every row at once.
+function render() {
+  if (!data) return;
+  let opts;
+  try { opts = parseFlags(flags.value); } catch (e) { message.textContent = e.message; return; }
+  message.textContent = '';
+  showClear();
+  shownFlags = flags.value.trim().replace(/\s+/g, ' ');
+  const picked = data.filter(r => rowMatches(r, opts));
+  rows = (opts.dollars ? topDollars(picked) : picked).toSorted(soonestFirst);
+  stats.innerHTML = rows.length
+    ? `<div class="headline">${ordersTotals(rows)}</div>`
+      + STATS.map(([label, value]) => `<div>${label && `<b>${esc(label)}</b> `}${esc(value(rows))}</div>`).join('')
+    : 'No matching rows';
+  drawRows();
+}
+
+// The report's rows: a screenful straight away, then the rest once the browser has drawn those. drawing counts
+// the draws, so rows from a filter the bar has moved on from never land in the table.
+const FIRST_ROWS = 150;
+let drawing = 0;
+function drawRows() {
+  const mine = ++drawing;
+  report.innerHTML = rows.length ? headingRow(COLUMNS_HTML) + tableRows(COLUMNS_HTML, rows.slice(0, FIRST_ROWS)) : '';
+  countSelected();
+  if (rows.length <= FIRST_ROWS) return;
+  setTimeout(() => {
+    if (mine === drawing) report.insertAdjacentHTML('beforeend', tableRows(COLUMNS_HTML, rows.slice(FIRST_ROWS), FIRST_ROWS));
+  });
+}
+
+// A row's ship date group, from the Ship Date Category of its earliest line (as of when the export was run).
+// The categories follow date order, so rows sorted soonest first fall into these groups one after another.
+const dateGroup = r => {
+  const category = r.lines.find(l => +l.shipDate === +r.shipDate).shipDateCategory;
+  return category.endsWith('Late') ? 'late' : category === 'Today' ? 'today' : category === 'Tomorrow' ? 'tomorrow' : 'future';
+};
+
+const headingRow = columns => `<tr>${columns.map(th).join('')}</tr>`;
+// Rows of the report as HTML, each ship date group opened by a divider row that says what the whole group
+// holds: "LATE  23 rows, $393,658.52". rs is all of `rows`, or a run of it starting at `from`, so a chunk
+// drawn later carries on from the group the one before it ended in.
+function tableRows(columns, rs, from = 0) {
+  const groups = Map.groupBy(rows, dateGroup);
+  return rs.map((r, i) => {
+    const group = dateGroup(r);
+    const opens = from + i === 0 || group !== dateGroup(rows[from + i - 1]);
+    return (opens ? `<tr><td class="group ${group}" colspan="${columns.length}">${groupTitle(group, worth(groups.get(group)))}</td></tr>` : '')
+      + bodyRow(columns, r, r.trip ? `${r.trip}|` : `|${r.orderNumbers[0]}`);
+  }).join('');
+}
+// What a divider says: "<b>LATE</b>  23 rows, $393,658.52".
+const groupTitle = (title, text) => `<b>${esc(title.toUpperCase())}</b>&nbsp; ${esc(text)}`;
+// add: what this row puts on the build list, "trip|order" - one side of it empty, since a row is either a
+// whole trip or one order. A row without it can be picked by nothing and added by nothing: a trip's items, say.
+const bodyRow = (columns, r, add) => `<tr${add ? ` data-add="${esc(add)}"` : ''}>${columns.map(c => td(c, r)).join('')}</tr>`;
+const bodyRows = (columns, rs, add) => rs.map(r => bodyRow(columns, r, add?.(r))).join('');
+
+// Every flag the report takes, as buttons that type themselves into the bar: a row for each tag group (ship
+// dates, channels, allocation, status, mode), the other plain flags, then the two that take a name. The lists
+// are ovh.js's own, so a new flag turns up here on its own.
+tags.innerHTML = [...TAG_GROUPS, OTHER_FLAGS, NAMES].map(group =>
+  `<div>${group.map(n => `<button data-flag="${n}">--${n}</button>`).join('')}</div>`).join('');
+
+tags.addEventListener('click', e => {
+  const flag = e.target.dataset.flag;
+  if (!flag) return;
+  const takesValue = NAMES.includes(flag);
+  const parts = flags.value.split(/\s+/).filter(Boolean);
+  const at = parts.indexOf(`--${flag}`);
+  // Clicking a flag that's already on the line takes it off again. One that needs a value waits for it.
+  if (at >= 0 && !takesValue) parts.splice(at, 1);
+  else parts.push(`--${flag}`);
+  flags.value = parts.join(' ') + (takesValue ? ' ' : '');
+  flags.focus();
+  showClear();
+  if (!takesValue) render();
+});
+
+// The loading bar, `share` (0 to 1) of 20 blocks filled, then what's happening.
+const showProgress = (share, label) => {
+  const filled = Math.round(share * 20);
+  progress.innerHTML = `<b>${'█'.repeat(filled)}</b><i>${'░'.repeat(20 - filled)}</i> ${String(Math.round(share * 100)).padStart(3)}% ${label}`;
+};
+// Lets the browser draw the bar before a step that holds it up (loadOrders and render run in one go). A short
+// timer rather than waiting for a frame, which never comes while the tab is in the background.
+const paint = () => new Promise(resolve => setTimeout(resolve, 30));
+let progressTimer;
+
+// The file as text, moving the bar through the first 40% as it's read.
+const readText = file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onprogress = e => e.lengthComputable && showProgress(0.4 * e.loaded / e.total, 'reading');
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = () => reject(reader.error);
+  reader.readAsText(file);
+});
+
+// Loads a picked export, with the bar going: reading, sorting (allocation and grouping), drawing, then done and
+// how long it took, which stays up for a few seconds.
+csv.addEventListener('change', async () => {
+  const file = csv.files[0];
+  if (!file) return;
+  clearTimeout(progressTimer);
+  filename.textContent = file.name;
+  const start = performance.now();
+  try {
+    showProgress(0, 'reading');
+    const text = await readText(file);
+    showProgress(0.45, 'sorting orders');
+    await paint();
+    data = loadOrders(text);
+    showProgress(0.85, 'drawing');
+    await paint();
+  } catch (e) { data = null; progress.textContent = ''; message.textContent = e.message; return; }
+  render();
+  showTrip();
+  drawBuild();
+  showProgress(1, `done in ${((performance.now() - start) / 1000).toFixed(1)}s`);
+  progressTimer = setTimeout(() => progress.textContent = '', 4000);
+  flags.focus();
+});
+// Enter runs the line. Esc is handled for the whole page, further down, since it has two jobs now.
+flags.addEventListener('keydown', e => {
+  if (e.key === 'Enter') render();
+});
+// A trip or order number clicked anywhere on the page - the report, or one trip's orders - looks it up in the
+// inspect tab. One listener over every tab, since the tables are redrawn.
+document.querySelector('main').addEventListener('click', e => {
+  const find = e.target.closest('[data-find]')?.dataset.find;
+  if (find) { tripNumber.value = find; showTab('inspect-tab'); showTrip(); return; }
+  // Anywhere else on a row picks it, and picks it off again: no modifier to hold, and as many rows as you like.
+  e.target.closest('tr[data-add], tr[data-drop]')?.classList.toggle('on');
+  countSelected();
+});
+// Esc does the nearer job first: it lets go of the picked rows, and once there are none it empties the bar.
+// So pressing it twice always ends up with nothing picked and no filters, whatever you were doing.
+function escape() {
+  if (document.querySelector('tr.on')) unpick();
+  else { flags.value = ''; flags.focus(); render(); }
+  showClear();
+}
+clear.addEventListener('click', escape);
+// The word at the end of the bar says which of the two Esc will do, so the key never has to be guessed at. It
+// only shows while there is something to clear, so an empty page has one less thing on it.
+function showClear() {
+  const picked = !!document.querySelector('tr.on');
+  clear.textContent = picked ? 'clear picked (esc)' : 'clear filters (esc)';
+  clear.hidden = !picked && !flags.value.trim();
+}
+flags.addEventListener('input', showClear);
+
+// A pasted table carries no stylesheet, so each cell takes its own style. Cells stay on one line, so each
+// column is as wide as its longest value and no wider.
+// The colors, read once from the CSS variables above (:root) rather than repeated here, so a saved or
+// emailed table can never show a different red or amber than the page does.
+const cssColor = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const [DANGER, WARNING, CYAN, ID_COLOR, BORDER] = ['--danger', '--warning', '--cyan', '--id', '--border'].map(cssColor);
+const inlineStyle = cell => [cell.tagName === 'SPAN' ? 'padding:0 3px' : 'padding:2px 10px 2px 0;white-space:nowrap',
+  cell.tagName === 'TH' && `font-weight:600;text-align:left;border-bottom:1px solid ${BORDER}`,
+  cell.classList.contains('right') && 'text-align:right',
+  cell.classList.contains('danger') && `background:${DANGER};color:#fff`,
+  cell.classList.contains('warning') && `background:${WARNING};color:#fff`,
+  cell.classList.contains('cyan') && `background:${CYAN};color:#fff`,
+  cell.classList.contains('id') && `color:${ID_COLOR}`,
+  cell.classList.contains('group') && `padding:12px 0 2px;border-bottom:1px solid ${BORDER}`,
+  cell.classList.contains('late') && `color:${DANGER};border-bottom-color:${DANGER}`,
+].filter(Boolean).join(';');
+
+// The table as the email gets it: built apart from the page, so none of the page's own table styles (its
+// window-wide, fixed-width columns) come along; only the inline styles above.
+function emailTable() {
+  const table = document.createElement('table');
+  table.innerHTML = headingRow(COLUMNS_COPY) + tableRows(COLUMNS_COPY, rows);
+  table.setAttribute('style', 'border-collapse:collapse;font-family:Consolas,monospace;font-size:12px');
+  // The inspect tab's links mean nothing in an email: keep the number, drop the link.
+  for (const link of table.querySelectorAll('a')) link.replaceWith(...link.childNodes);
+  for (const row of table.querySelectorAll('tr')) { row.removeAttribute('class'); row.removeAttribute('data-add'); }
+  for (const cell of table.querySelectorAll('th, td, span')) {
+    cell.setAttribute('style', inlineStyle(cell));
+    if (cell.tagName !== 'SPAN') cell.setAttribute('nowrap', ''); // Outlook skips white-space, not this
+    cell.removeAttribute('class');
+    cell.removeAttribute('title');
+  }
+  return table.outerHTML;
+}
+
+// Puts exactly this text on the clipboard, instead of whatever the browser would make of a selection. True if
+// it went.
+function toClipboard(text) {
+  const fill = e => {
+    e.clipboardData.setData('text/plain', text);
+    e.preventDefault();
+  };
+  document.addEventListener('copy', fill);
+  const copied = document.execCommand('copy');
+  document.removeEventListener('copy', fill);
+  return copied;
+}
+
+// Saves the same table as an HTML file, under a heading that says what it is: the filters, the export and the
+// counts line. For when a pasted copy loses its formatting: open the file, or attach it.
+save.addEventListener('click', () => {
+  if (!rows.length) return;
+  const title = `ovh orders ${shownFlags}`.trim();
+  const page = `<!doctype html>
+<html><head><meta charset="utf-8"><title>${esc(title)}</title></head>
+<body style="font-family:Consolas,monospace;font-size:12px">
+<p><b>${esc(title)}</b><br>${esc(filename.textContent)}<br>${esc(ordersTotals(rows))}</p>
+${emailTable()}
+</body></html>`;
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([page], { type: 'text/html' }));
+  // "2026-09-16 ovh --late --thd.html" (en-CA writes the date that way), without the characters a Windows
+  // file name can't have, like the quotes around a --shipto name.
+  link.download = `${new Date().toLocaleDateString('en-CA')} ovh ${shownFlags}`.trim().replace(/[\\/:*?"<>|]/g, '') + '.html';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+});
+
+// ---- Inspect tab ----
+
+
+// Everything about one report row: a heading, what it adds up to, then its orders and its items, the items
+// with stock problems first. order: the order number looked up, when the row came from one - the heading
+// then leads with that order and says which trip it's on.
+const PROBLEMS_FIRST = { short: 0, split: 1, alloc: 2 };
+function tripDetail(r, order) {
+  const channels = [...Map.groupBy(r.lines, l => l.salesChannel)]
+    .map(([channel, ls]) => [channel, total(ls, 'dollars')]).sort((a, b) => b[1] - a[1])
+    .map(([channel, dollars]) => `${channel} ${money(dollars)}`).join(', ');
+  const shipDates = [...new Set(r.lines.toSorted((a, b) => a.shipDate - b.shipDate).map(l => mdy(l.shipDate)))];
+  const holds = r.orders.filter(o => o.onHold).length;
+  const deliveries = new Set(r.lines.map(l => l.delivery).filter(Boolean)).size;
+  const facts = [
+    ['Ship method', esc(variations(r.lines.map(l => l.shippingMethod), 'ship methods'))],
+    ['Ship date', mark(shipDates.length > 1 ? `${shipDates[0]} to ${shipDates.at(-1)}` : shipDates[0], r.late && 'danger')
+      + ` ${dateGroup(r)}`],
+    ['Ship to', esc(r.shipTos)],
+    ['Status', mark(r.status, warnStatus(r.status))],
+    ['Alloc', mark(r.allocation, ALLOC_COLUMN.color(r))],
+    ['Line statuses', esc(r.lineStatuses)],
+    ['', mark(lineWorth([r], 'short'), r.allocation !== 'alloc' && 'danger')],
+    ['On hold', holds ? mark(count(holds, 'order'), 'warning') : 'none'],
+    ['Channels', esc(channels)],
+  ];
+  const headline = [count(r.orders.length, 'order'), `${deliveries} deliver${deliveries === 1 ? 'y' : 'ies'}`,
+    count(r.lines.length, 'line'), count(total(r.items, 'pieces'), 'piece'), count(r.cases, 'case'), money(r.dollars)].join(', ');
+  // The title goes above the table, not in it: a fixed layout table takes its column widths from its first row.
+  const table = (title, note, columns, rs, add) => `<div class="group">${groupTitle(title, note)}</div>`
+    + `<table><tr>${columns.map(th).join('')}</tr>${bodyRows(columns, rs, add)}</table>`;
+  // The trip in "Order 54056588 on Trip 7983534" links to the trip itself, the whole thing rather than this
+  // order's part of it. The heading of a trip looked up by its own number is where that link would land.
+  const title = order
+    ? `Order ${esc(order)} ${r.trip
+      ? `<span class="muted">on</span> Trip <a data-find="${esc(r.trip)}">${esc(r.trip)}</a>`
+      : '<span class="muted">not on a trip</span>'}`
+    : `Trip ${esc(r.trip)}`;
+  // The button adds what the heading names: the trip, or the one order looked up on it.
+  return `<h2><span>${title}</span><button class="add" data-add="${esc(`${r.trip}|${order || ''}`)}">bld (ctrl+b)</button></h2>
+<div class="stats"><div class="headline">${headline}</div>
+${facts.map(([label, value]) => `<div>${label && `<b>${label}</b> `}${value}</div>`).join('')}</div>
+${table('Orders', r.orders.length.toLocaleString(), TRIP_ORDER_COLUMNS, r.orders, o => `${r.trip}|${o.orderNumber}`)}
+${table('Items', `${r.items.length.toLocaleString()}, short and split first`, TRIP_ITEM_COLUMNS,
+    r.items.toSorted((a, b) => PROBLEMS_FIRST[a.allocation] - PROBLEMS_FIRST[b.allocation]))}`;
+}
+
+// Shows the trip whose number is in the box, or, if no trip has that number, the order itself - as its own row
+// (makeRow over just its lines), so its totals, orders and items are the order's and not its whole trip's. An
+// order split across trips gets one of these per trip, and each heading links the trip it is a part of.
+function showTrip() {
+  const number = tripNumber.value.trim();
+  tripMessage.textContent = '';
+  tripView.innerHTML = '';
+  if (!number) return;
+  if (!data) { tripMessage.textContent = 'Open an export in the search tab first'; return; }
+  const trip = data.filter(r => r.trip === number);
+  const found = trip.length ? trip : data.filter(r => r.orderNumbers.includes(number)).toSorted(soonestFirst)
+    .map(r => makeRow(r.orders.find(o => o.orderNumber === number).lines));
+  if (!found.length) { tripMessage.textContent = `No trip or order ${number} in this export`; return; }
+  if (found.length > 1) tripMessage.textContent = `Order ${number} is on ${found.length} rows`;
+  tripView.innerHTML = found.map(r => `<div class="trip-detail">${tripDetail(r, !trip.length && number)}</div>`).join('');
+}
+tripNumber.addEventListener('keydown', e => { if (e.key === 'Enter') showTrip(); });
+
+tripView.addEventListener('click', e => {
+  const button = e.target.closest('button[data-add]');
+  if (button && addToBuild(button.dataset.add)) celebrate(1);
+});
+// Ctrl+B adds wherever you are on the inspect tab, since Enter in the bar has just looked the trip up and b on
+// its own belongs to the selected row. An order on more than one trip shows a button per trip, but they all
+// name that order, so the first will do.
+document.addEventListener('keydown', e => {
+  const button = tripView.querySelector('button[data-add]');
+  if (e.key === 'b' && e.ctrlKey && button && !document.getElementById('inspect-tab').hidden) {
+    e.preventDefault();
+    if (addToBuild(button.dataset.add)) celebrate(1);
+  }
+});
+
+// ---- Build tab ----
+
+// The trips and orders to paste into the wave sheet, in the order they were added. Entries rather than rows
+// ({ trip, order }, order being '' for a whole trip): a new export makes new rows, so buildRow in ovh.js looks
+// each entry up again every time the list is drawn, which refreshes them and drops whatever has gone.
+let build = [];
+
+// Adds one "trip|order", the row's own: an order split over two trips is two rows, and picking one of them
+// puts that part on and not the other. Nothing the export doesn't hold, and nothing already on the list, so a
+// trip can't be pasted twice.
+function addToBuild(spec) {
+  const [trip, order] = spec.split('|');
+  if (!data || !buildRow({ trip, order }, data)) return false;
+  if (build.some(e => e.trip === trip && e.order === order)) return false;
+  build.push({ trip, order });
+  drawBuild();
+  return true;
+}
+
+// What the list comes to in the export showing now, the entries that find nothing dropped as it goes, so the
+// table and the paste can never show a trip that has already shipped.
+function buildRows() {
+  const found = build.map(entry => buildRow(entry, data ?? []));
+  build = build.filter((entry, i) => found[i]);
+  return found.filter(Boolean);
+}
+
+// The count is on the tab, since a number added from search or inspect lands out of sight.
+function drawBuild() {
+  const rows = buildRows();
+  countSelected();
+  buildTab.textContent = build.length ? `build ${build.length}` : 'build';
+  buildTotals.innerHTML = rows.length ? [
+    ['rows', rows.length],
+    ['orders', new Set(rows.flatMap(r => r.orderNumbers)).size],
+    ['lines', rows.reduce((t, r) => t + r.lines.length, 0)],
+    ['cases', total(rows, 'cases')],
+  ].map(([label, n]) => `<div>${n.toLocaleString()}<span>${label}</span></div>`).join('') : '';
+  // The number in front and the × behind are the list's own, not columns: they count and act on the list
+  // rather than saying anything the wave sheet takes.
+  buildView.innerHTML = rows.length
+    ? `<table><tr><th class="num" style="width:4ch">#</th>${BUILD_COLUMNS.map(th).join('')}<th style="width:5ch"></th></tr>`
+      + rows.map((r, i) => `<tr data-drop="${i}"><td class="num">${i + 1}</td>${BUILD_COLUMNS.map(c => td(c, r)).join('')}`
+        + `<td><button class="drop" data-drop="${i}" title="take this off the list">×</button></td></tr>`).join('')
+      + '</table>'
+    : '<p class="empty">Nothing on the list yet. Click a row on search or inspect, then <b>bld</b>.</p>';
+}
+drawBuild();
+
+// buildRows has just put build in the same order as the table, so a row's number is its place on the list.
+function dropFromBuild(i) {
+  build.splice(i, 1);
+  drawBuild();
+}
+buildView.addEventListener('click', e => {
+  const drop = e.target.closest('button[data-drop]');
+  if (drop) dropFromBuild(drop.dataset.drop);
+});
+clearBuild.addEventListener('click', () => { build = []; drawBuild(); });
+
+// Click the rows you want, then bld or drop - by the button, or by the key beside its name. The picked rows are
+// the ones marked down their left edge, wherever they are: the report, a trip's orders, or the list itself. A
+// row a button can't act on is simply not its own: only the list's rows have a data-drop, only the others add.
+function pickedRows(what) { return [...document.querySelectorAll(`tr.on[data-${what}]`)]; }
+// The buttons say how many they are about to act on, since the rows may be scrolled away from them.
+function countSelected() {
+  const add = pickedRows('add').length, drop = pickedRows('drop').length;
+  bldSelected.textContent = add ? `bld ${add} (b)` : 'bld (b)';
+  dropSelected.textContent = drop ? `drop ${drop} (d)` : 'drop (d)';
+  showClear();
+}
+function addPicked() {
+  const rows = pickedRows('add');
+  const added = rows.filter(tr => addToBuild(tr.dataset.add)).length;
+  // Added rows let go of themselves: they're on the list now, and the marks left behind would only be in the
+  // way of picking the next few.
+  if (rows.length) unpick();
+  if (added) celebrate(added);
+  return rows.length;
+}
+function dropPicked() {
+  // Highest place first: dropping a row moves every row under it up one.
+  const places = pickedRows('drop').map(tr => +tr.dataset.drop).sort((a, b) => b - a);
+  for (const i of places) build.splice(i, 1);
+  if (places.length) drawBuild();
+  return places.length;
+}
+// Clears the picks. The tab you leave keeps none, so what a button says is always what you can see.
+function unpick() {
+  for (const tr of document.querySelectorAll('tr.on')) tr.classList.remove('on');
+  countSelected();
+}
+// ---- What building feels like ----
+
+// Adding is the thing a worker does over and over, so it gives a little back. The color changes every time, and
+// now and then the run comes up big. 15%: a session of thirty adds lands four or five, often enough to be worth
+// hoping for and rare enough that it stays a surprise rather than the thing that always happens.
+const POP_COLORS = ['#d98324', '#0e9aa7', '#3f9142', '#7a5cc4', '#c2418a'];
+const CRIT_CHANCE = 0.15;
+// The copy's own, and likelier: a worker adds thirty times in a session and copies a handful, so 15% there
+// would be a jackpot seen once a fortnight. A quarter of copies makes it a thing that happens.
+const JACKPOT_CHANCE = 0.25;
+const root = document.documentElement;
+const logo = document.querySelector('.logo');
+// The three speed lines go one after another rather than together, which is what makes it read as moving.
+document.querySelectorAll('.logo .speed').forEach((el, i) => el.style.setProperty('--d', `${i * 70}ms`));
+let rolling;
+
+// n: how many rows went on, floated over the build tab. big: the copy, which is what all the picking was for.
+function celebrate(n, big) {
+  const special = Math.random() < (big ? JACKPOT_CHANCE : CRIT_CHANCE);
+  // Three of the colours, from a random one along: whichever it starts at, the three are never the same.
+  const from = Math.floor(Math.random() * POP_COLORS.length);
+  const pick = i => POP_COLORS[(from + i) % POP_COLORS.length];
+  root.style.setProperty('--pop', pick(0));
+  root.style.setProperty('--pop2', pick(1));
+  root.style.setProperty('--pop3', pick(2));
+  // Off, then a read of the layout, then on: without it a second add inside the first one's run does nothing.
+  logo.classList.remove('rolling', 'crit', 'big', 'jackpot');
+  void logo.offsetWidth;
+  logo.classList.add('rolling');
+  logo.classList.toggle('big', !!big);
+  logo.classList.toggle('crit', special && !big);
+  logo.classList.toggle('jackpot', special && !!big);
+  clearTimeout(rolling);
+  rolling = setTimeout(() => logo.classList.remove('rolling', 'crit', 'big', 'jackpot'), special || big ? 2300 : 900);
+  buildTotals.classList.toggle('flash', !!big && !special);
+  buildTotals.classList.toggle('jackpot', !!big && special);
+  if (big) setTimeout(() => buildTotals.classList.remove('flash', 'jackpot'), 2400);
+  // The adds float their count; the copy floats nothing unless it hit, and then it says so.
+  const text = n ? (special ? `+${n}!` : `+${n}`) : (special ? 'wave away!' : '');
+  if (!text) return;
+  const box = buildTab.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = special ? 'pop crit' : 'pop';
+  pop.textContent = text;
+  pop.style.left = `${box.left + box.width / 2}px`;
+  // The header scrolls away in a long report; the count shouldn't go with it, and it rises 28px from here.
+  pop.style.top = `${Math.max(box.top, 44)}px`;
+  document.body.append(pop);
+  pop.addEventListener('animationend', () => pop.remove());
+}
+
+bldSelected.addEventListener('click', () => { if (!addPicked()) message.textContent = 'Click a row first, then bld'; });
+dropSelected.addEventListener('click', () => { if (!dropPicked()) buildMessage.textContent = 'Click a row first, then drop'; });
+// Not while a bar has the typing, and not when a modifier is down: b is a letter before it's a shortcut.
+document.addEventListener('keydown', e => {
+  // Esc is the one that works while a bar has the typing, since emptying that bar is half its job.
+  if (e.key === 'Escape') { escape(); return; }
+  // The ctrl keys belong to the tab showing, and each is the browser's own key otherwise, so each says no to it.
+  // Ctrl+C steps aside for a selection: copying a name out of the table is what the browser's own key is for.
+  if (e.ctrlKey && !e.altKey && !e.metaKey) {
+    const showing = id => !document.getElementById(id).hidden;
+    if (e.key === 'c' && showing('build-tab') && !getSelection().toString()) { e.preventDefault(); copyBuild.click(); }
+    if (e.key === 'd' && showing('build-tab')) { e.preventDefault(); clearBuild.click(); }
+    if (e.key === 's' && showing('search-tab')) { e.preventDefault(); save.click(); }
+    return;
+  }
+  if (e.altKey || e.metaKey || e.target.matches?.('input')) return;
+  if (e.key === 'b') addPicked();
+  if (e.key === 'd') dropPicked();
+
+});
+
+// The whole list as the wave sheet takes it, one waveLine per row. Text only, no HTML: the sheet takes
+// tab-separated cells, and waveLine already writes them the way Excel reads them.
+copyBuild.addEventListener('click', () => {
+  const rows = buildRows();
+  if (!rows.length) return;
+  const copied = toClipboard(rows.map(waveLine).join('\n'));
+  buildMessage.textContent = copied ? '' : 'Could not copy the list';
+  if (copied) {
+    celebrate(0, true);
+    copyBuild.textContent = `Copied ${count(rows.length, 'row')}: paste with Ctrl+V`;
+    setTimeout(() => copyBuild.textContent = 'Copy build (ctrl+c)', 4000);
+  }
+});
+
+// ---- Help tab ----
+
+// HELP.md -> HTML: headings, paragraphs, bullet lists (nested by indent), code blocks, `code` and **bold**.
+// Just what the help uses; anything else shows as plain text.
+function markdown(text) {
+  const inline = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  const out = [];
+  const lists = []; // the indent of each open bullet list, innermost last
+  let code = false, para = false;
+  const endPara = () => { if (para) out.push('</p>'); para = false; };
+  const endLists = (indent = -1) => { while (lists.at(-1) > indent) { out.push('</li></ul>'); lists.pop(); } };
+  for (const line of text.split(/\r?\n/)) {
+    if (line.startsWith('```')) { endPara(); endLists(); out.push(code ? '</pre>' : '<pre>'); code = !code; continue; }
+    if (code) { out.push(esc(line) + '\n'); continue; }
+    const heading = /^(#+) (.*)/.exec(line);
+    const bullet = /^( *)- (.*)/.exec(line);
+    if (!line.trim()) { endPara(); endLists(); }
+    else if (heading) { endPara(); endLists(); out.push(`<h${heading[1].length}>${inline(heading[2])}</h${heading[1].length}>`); }
+    else if (bullet) {
+      const indent = bullet[1].length;
+      endPara();
+      endLists(indent);
+      // A bullet at the same indent is the next item; a deeper one starts a list inside the item above.
+      if (lists.at(-1) === indent) out.push('</li>');
+      else { out.push('<ul>'); lists.push(indent); }
+      out.push(`<li>${inline(bullet[2])}`);
+    }
+    else if (lists.length) out.push(` ${inline(line.trim())}`); // a bullet's text running onto the next line
+    else { out.push(para ? ' ' : '<p>', inline(line.trim())); para = true; }
+  }
+  endPara();
+  endLists();
+  return out.join('');
+}
+
+document.getElementById('help-tab').innerHTML = BUNDLE ? markdown(BUNDLE.help)
+  : '<p>The help shows here in the built "ovh v<version>.html". Build that with <code>node bundle.js</code>.</p>';
+</script>
+</body>
+</html>
