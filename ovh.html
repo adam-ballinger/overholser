@@ -39,7 +39,7 @@
   #progress { color: #94918a }
   #progress b { font-weight: normal; color: #b25a00 }
   #progress i { font-style: normal; color: #d3d0c9 }
-  .table-tools { justify-content: flex-end; margin-bottom: 6px }  /* Copy and Save, at the right above the table */
+  .table-tools { justify-content: flex-end; margin-bottom: 6px }  /* bld all and save, at the right above the table */
   /* The filter bar reads as a prompt: "> --today --thd", with room around it to type in. */
   .bar { display: flex; align-items: center; gap: 8px; margin: 18px 0; border-bottom: 1px solid #c9c6bf }
   .bar > span { color: #94918a }
@@ -170,7 +170,7 @@
 <main>
 <section id="search-tab">
   <div class="tools">
-    <label class="button">Open CSV<input type="file" id="csv" accept=".csv" hidden></label>
+    <label class="button">open csv<input type="file" id="csv" accept=".csv" hidden></label>
     <span id="progress"></span>
     <span id="filename"></span>
   </div>
@@ -180,10 +180,11 @@
   <div id="message" class="message"></div>
   <div id="tags"></div>
   <div id="stats" class="stats">Pick an open orders export. It stays in this browser.</div>
-  <!-- Save acts on the table, so it sits with it rather than up with Open CSV. -->
+  <!-- save and bld all act on the table, so they sit with it rather than up with open csv. -->
   <div class="tools table-tools">
     <button id="bldSelected">bld (b)</button>
-    <button id="save">Save table (ctrl+s)</button>
+    <button id="bldAll">bld all (ctrl+b)</button>
+    <button id="save">save table (ctrl+s)</button>
   </div>
   <table id="report"></table>
 </section>
@@ -195,9 +196,9 @@
 </section>
 <section id="build-tab" hidden>
   <div class="tools table-tools">
-    <button id="copyBuild">Copy build (ctrl+c)</button>
+    <button id="copyBuild">copy build (ctrl+c)</button>
     <button id="dropSelected">drop (d)</button>
-    <button id="clearBuild">Clear (ctrl+d)</button>
+    <button id="clearBuild">clear (ctrl+d)</button>
   </div>
   <div id="buildMessage" class="message"></div>
   <div id="buildTotals"></div>
@@ -362,13 +363,15 @@ const headingRow = columns => `<tr>${columns.map(th).join('')}</tr>`;
 // Rows of the report as HTML, each ship date group opened by a divider row that says what the whole group
 // holds: "LATE  23 rows, $393,658.52". rs is all of `rows`, or a run of it starting at `from`, so a chunk
 // drawn later carries on from the group the one before it ended in.
+// What a report row puts on the list: its trip, or the order itself when the row is not on one.
+const addSpec = r => r.trip ? `${r.trip}|` : `|${r.orderNumbers[0]}`;
 function tableRows(columns, rs, from = 0) {
   const groups = Map.groupBy(rows, dateGroup);
   return rs.map((r, i) => {
     const group = dateGroup(r);
     const opens = from + i === 0 || group !== dateGroup(rows[from + i - 1]);
     return (opens ? `<tr><td class="group ${group}" colspan="${columns.length}">${groupTitle(group, worth(groups.get(group)))}</td></tr>` : '')
-      + bodyRow(columns, r, r.trip ? `${r.trip}|` : `|${r.orderNumbers[0]}`);
+      + bodyRow(columns, r, addSpec(r));
   }).join('');
 }
 // What a divider says: "<b>LATE</b>  23 rows, $393,658.52".
@@ -609,16 +612,6 @@ tripView.addEventListener('click', e => {
   const button = e.target.closest('button[data-add]');
   if (button && addToBuild(button.dataset.add)) celebrate(1);
 });
-// Ctrl+B adds wherever you are on the inspect tab, since Enter in the bar has just looked the trip up and b on
-// its own belongs to the selected row. An order on more than one trip shows a button per trip, but they all
-// name that order, so the first will do.
-document.addEventListener('keydown', e => {
-  const button = tripView.querySelector('button[data-add]');
-  if (e.key === 'b' && e.ctrlKey && button && !document.getElementById('inspect-tab').hidden) {
-    e.preventDefault();
-    if (addToBuild(button.dataset.add)) celebrate(1);
-  }
-});
 
 // ---- Build tab ----
 
@@ -629,15 +622,16 @@ let build = [];
 
 // Adds one "trip|order", the row's own: an order split over two trips is two rows, and picking one of them
 // puts that part on and not the other. Nothing the export doesn't hold, and nothing already on the list, so a
-// trip can't be pasted twice.
-function addToBuild(spec) {
+// trip can't be pasted twice. addEntry doesn't draw, since bld all puts a whole report on at once and
+// drawing each time would be the slow half of that; addToBuild is the one-off, which draws.
+function addEntry(spec) {
   const [trip, order] = spec.split('|');
   if (!data || !buildRow({ trip, order }, data)) return false;
   if (build.some(e => e.trip === trip && e.order === order)) return false;
   build.push({ trip, order });
-  drawBuild();
   return true;
 }
+const addToBuild = spec => addEntry(spec) && (drawBuild(), true);
 
 // What the list comes to in the export showing now, the entries that find nothing dropped as it goes, so the
 // table and the paste can never show a trip that has already shipped.
@@ -693,7 +687,8 @@ function countSelected() {
 }
 function addPicked() {
   const rows = pickedRows('add');
-  const added = rows.filter(tr => addToBuild(tr.dataset.add)).length;
+  const added = rows.filter(tr => addEntry(tr.dataset.add)).length;
+  if (added) drawBuild();
   // Added rows let go of themselves: they're on the list now, and the marks left behind would only be in the
   // way of picking the next few.
   if (rows.length) unpick();
@@ -764,6 +759,14 @@ function celebrate(n, big) {
 }
 
 bldSelected.addEventListener('click', () => { if (!addPicked()) message.textContent = 'Click a row first, then bld'; });
+// bld all takes the rows the filters picked rather than what the table has drawn, since the second chunk of
+// a long report may still be on its way. So a filter line is a whole wave in one key.
+bldAll.addEventListener('click', () => {
+  const added = rows.filter(r => addEntry(addSpec(r))).length;
+  if (added) { drawBuild(); celebrate(added); }
+  message.textContent = added ? ''
+    : rows.length ? 'Every row shown is already on the list' : 'No rows to put on the list';
+});
 dropSelected.addEventListener('click', () => { if (!dropPicked()) buildMessage.textContent = 'Click a row first, then drop'; });
 // Not while a bar has the typing, and not when a modifier is down: b is a letter before it's a shortcut.
 document.addEventListener('keydown', e => {
@@ -785,6 +788,15 @@ document.addEventListener('keydown', e => {
     if (e.key === 'c' && showing('build-tab') && !getSelection().toString()) { e.preventDefault(); copyBuild.click(); }
     if (e.key === 'd' && showing('build-tab')) { e.preventDefault(); clearBuild.click(); }
     if (e.key === 's' && showing('search-tab')) { e.preventDefault(); save.click(); }
+    // Ctrl+B is whatever building means on the tab showing: on search every row the filters picked, on
+    // inspect what the heading names, since Enter in the bar has just looked it up and b on its own belongs
+    // to the picked rows. An order on more than one trip shows a button per trip, but each names that same
+    // order, so the first will do.
+    if (e.key === 'b' && showing('search-tab')) { e.preventDefault(); bldAll.click(); }
+    if (e.key === 'b' && showing('inspect-tab')) {
+      const add = tripView.querySelector('button[data-add]');
+      if (add) { e.preventDefault(); add.click(); }
+    }
     return;
   }
   if (e.altKey || e.metaKey || e.target.matches?.('input')) return;
@@ -802,8 +814,8 @@ copyBuild.addEventListener('click', () => {
   buildMessage.textContent = copied ? '' : 'Could not copy the list';
   if (copied) {
     celebrate(0, true);
-    copyBuild.textContent = `Copied ${count(rows.length, 'row')}: paste with Ctrl+V`;
-    setTimeout(() => copyBuild.textContent = 'Copy build (ctrl+c)', 4000);
+    copyBuild.textContent = `copied ${count(rows.length, 'row')}: paste with ctrl+v`;
+    setTimeout(() => copyBuild.textContent = 'copy build (ctrl+c)', 4000);
   }
 });
 

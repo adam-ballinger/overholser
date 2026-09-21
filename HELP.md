@@ -8,13 +8,13 @@ or missing, tell whoever sent you the link.
 
 - Open the page in a web browser, like Chrome or Edge. The link is all you
   need; nothing to install, and it is always the newest version.
-- Click **Open CSV** and pick the open orders export (a `.csv` file) from the
+- Click **open csv** and pick the open orders export (a `.csv` file) from the
   office system.
 - A bar next to the button shows it loading; a big export takes a few
   seconds, most of it on "sorting orders".
 - The report appears. Narrow it down with the filters: see **Filtering**,
   next.
-- To start over with a newer export, click **Open CSV** again.
+- To start over with a newer export, click **open csv** again.
 - The four tabs across the top are the tools. Click one, or hold **Alt** and
   press its first letter: **Alt+S** search, **Alt+I** inspect, **Alt+B**
   build, **Alt+H** help.
@@ -180,6 +180,10 @@ takes you to the inspect tab, the way it always has.
   if you want both parts.
 - **bld (ctrl+b)** at the right of a heading on the inspect tab puts what that
   heading names on, without picking any row first.
+- **bld all (ctrl+b)** on the search tab puts on every row the filters picked -
+  the whole report as you have narrowed it, not just the rows you clicked. So
+  filter down to the wave you want, press **Ctrl+B**, and it is all on the list.
+  It counts what actually went on, so pressing it twice adds nothing.
 - Adding something already on the list does nothing, so nothing can be pasted
   into the sheet twice.
 
@@ -187,7 +191,7 @@ Across the top the list says what it comes to: how many rows, orders, lines
 and cases. Under that are the six things the wave sheet wants - trip, order
 numbers, customer, ship method, ship date and cases - numbered down the side.
 
-**Copy build (ctrl+c)** puts the whole list on the clipboard, one line per row, and
+**copy build (ctrl+c)** puts the whole list on the clipboard, one line per row, and
 **Ctrl+V** pastes it into the sheet. Each value lands in its own cell, and the
 order numbers stay as they are instead of turning into one long number. Two
 blank cells go in between the order numbers and the customer, which is where
@@ -197,7 +201,7 @@ than one ship method says how many ("2 ship methods").
 
 To take rows off, pick them the same way and press **d**, or use the **drop**
 button above the table, which counts them too. The small **x** at the end of a
-row takes off that one row. **Clear (ctrl+d)** empties the list - all of it at
+row takes off that one row. **clear (ctrl+d)** empties the list - all of it at
 once, with no way back, so mind that one.
 
 Opening a newer export keeps your list and reads every row's numbers from the
@@ -241,7 +245,7 @@ They cover just the rows your filters picked.
 
 ## Sending the report on
 
-**Save table (ctrl+s)**, just above the table, saves the report as a file in
+**save table (ctrl+s)**, just above the table, saves the report as a file in
 your Downloads, named with the date and your filters, like
 `2026-09-16 ovh --late --thd.html`, and headed with the filters, the export's
 name and the counts. Open it in your browser, or attach it to an email.
@@ -259,7 +263,8 @@ are more.
 - **b** - put the picked rows on the build list.
 - **d** - take the picked rows off the build list.
 - **Esc** - let go of the picked rows; again, empty the filter bar.
-- **Ctrl+B** - on inspect, put what the heading names on the list.
+- **Ctrl+B** - on search, put every row the filters picked on the list; on
+  inspect, put what the heading names on.
 - **Ctrl+C** - on build, copy the list. (With something selected on the page
   it copies that instead, the way it normally would.)
 - **Ctrl+D** - on build, empty the list.

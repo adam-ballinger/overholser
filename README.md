@@ -52,6 +52,13 @@ into a symbol.
   divider only when its group changes, and each divider still counts the whole
   group. A `drawing` count drops a late chunk whose filters the bar has already
   moved past.
+  **bld all (ctrl+b)**, beside save table, puts every row the filters picked on
+  the build list, so a filter line is a whole wave in one key. It takes `rows`,
+  the rows the flags picked last, rather than the drawn `<tr>`s, since the
+  second chunk of a long report may still be on its way; `addSpec` names what a
+  row puts on, the one `tableRows` gives each row. `addEntry` is one entry
+  without drawing and `addToBuild` the one-off that draws, so a whole report
+  going on redraws the list once rather than a thousand times.
 - **inspect** shows one report row in full: type a trip or order number and
   Enter, or click one. Every trip and order number the page shows is a link
   here (a column's `find` names the numbers in its cell, `td` links each one,
@@ -107,10 +114,10 @@ into a symbol.
   it - neither a column, since they count and act on the list rather than
   saying anything the sheet takes. **drop** or **d** takes every picked row
   off, highest place first since dropping one moves the rows under it up; the x
-  takes off the row it sits in; **Clear** empties the list. `#buildTotals`
+  takes off the row it sits in; **clear** empties the list. `#buildTotals`
   says what the list comes to (rows, orders, lines, cases), orders named once
   the way the report's counts line does them. `#build-tab th, td` overrides the narrow-window rules,
-  since all six columns are in the paste. **Copy build** is one `waveLine` per
+  since all six columns are in the paste. **copy build** is one `waveLine` per
   row, newline separated, text only, no HTML: it's for pasting into the sheet,
   not an email. `waveLine` lists customers like the order numbers, each named
   once; ship method says how many when a trip has more than one ("2 ship
@@ -121,8 +128,8 @@ into a symbol.
 - **help** is `HELP.md`: plain-language instructions for the people using the
   page, not this file. Keep it current when what the page does changes.
 
-**Save table (ctrl+s)** sits at the right just above the table it acts on, away
-from Open CSV and the typing line. It downloads the report as an HTML file
+**save table (ctrl+s)** sits at the right just above the table it acts on, away
+from open csv and the typing line. It downloads the report as an HTML file
 (`2026-09-16 ovh --late --thd.html`: the date, then the filters behind the
 table shown), headed by the filters, the export's name and the counts line:
 for Outlook, where a pasted copy loses its text formatting. `emailTable`
@@ -131,16 +138,18 @@ selection would bring the page's window-wide columns); every column goes, even
 the ones the window is too narrow to show, with the group dividers, cells on
 one line and Items kept to 34 characters.
 
-A **Copy table** button put the same table on the clipboard, as HTML and as
+A **copy table** button put the same table on the clipboard, as HTML and as
 tab-separated text. Adam asked for it out for now; it is in the history, and
 `toClipboard` lost the HTML half of its job with it.
 
-**The keys:** the ctrl ones belong to the tab showing and each is the
+**The keys:** the ctrl ones belong to the tab showing, and each is the
 browser's own otherwise, so each says no to it - `ctrl+s` saves the table on
-search, `ctrl+c` copies the list and `ctrl+d` empties it on build. Ctrl+C
-steps aside when something is selected, since copying a name out of a cell is
-what the browser's key is for. The alt ones are the tabs, above, and the only
-keys that work from any tab.
+search, `ctrl+c` copies the list and `ctrl+d` empties it on build. `ctrl+b` is
+whatever building means on the tab showing: every row the filters picked on
+search, what the heading names on inspect. Ctrl+C steps aside when something
+is selected, since copying a name out of a cell is what the browser's key is
+for. The alt ones are the tabs, above, and the only keys that work from any
+tab.
 
 **What building feels like:** adding rows is what a worker does over and over,
 so it gives a little back. `celebrate` rolls the truck in the header (the
@@ -266,6 +275,9 @@ Future.
 
 ## Conventions
 
+- **Buttons are lowercase**, like the tabs and the flags, and each says its
+  key in brackets ("save table (ctrl+s)"). The page reads as typed commands,
+  and a capital in the middle of that reads as a different kind of thing.
 - **Colors:** danger is white on red, warning white on orange, both on the text
   only, not the whole cell. A column's `color(row)` in `REPORT_COLUMNS` names
   the CSS class (`'danger'`, `'warning'`); `ITEM_TAGS` names each tag's class,
