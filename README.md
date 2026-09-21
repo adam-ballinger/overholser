@@ -32,7 +32,9 @@ into a symbol.
   beside the button shows the load: real progress while the file is read, then
   a step each for `loadOrders` and drawing, since those run in one go; the
   page waits a short timer, not a frame, before each so the bar shows and a
-  background tab doesn't stall). Type flags in the bar, Enter to run them, or
+  background tab doesn't stall; then the file's name and its own date and
+  time stay on the line, `fileWhen`, since an export a day old still reports
+  as if it were now). Type flags in the bar, Enter to run them, or
   click the flag buttons under it (a flag that's already on the line comes off
   again). At the end of the line, plain text rather than another button, is
   what **Esc** will do (`showClear`): "clear picked (esc)" while rows are

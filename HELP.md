@@ -12,6 +12,8 @@ or missing, tell whoever sent you the link.
   (a `.csv` file) from the office system.
 - A bar next to the button shows it loading; a big export takes a few
   seconds, most of it on "sorting orders".
+- The file name then stays beside the button, with the date and time the
+  export was made, so you can see how old the numbers are.
 - The report appears. Narrow it down with the filters: see **Filtering**,
   next.
 - To start over with a newer export, click **open csv** again.

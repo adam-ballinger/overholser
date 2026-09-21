@@ -424,6 +424,13 @@ const showProgress = (share, label) => {
 const paint = () => new Promise(resolve => setTimeout(resolve, 30));
 let progressTimer;
 
+// The export's own file time, so the name beside open csv says how old the numbers are. It goes in the saved
+// files too, since those are headed by whatever this line says.
+const fileWhen = ms => {
+  const d = new Date(ms);
+  return `${mdy(d)} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+};
+
 // The file as text, moving the bar through the first 40% as it's read.
 const readText = file => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -439,7 +446,7 @@ csv.addEventListener('change', async () => {
   const file = csv.files[0];
   if (!file) return;
   clearTimeout(progressTimer);
-  filename.textContent = file.name;
+  filename.textContent = `${file.name} — ${fileWhen(file.lastModified)}`;
   const start = performance.now();
   try {
     showProgress(0, 'reading');
