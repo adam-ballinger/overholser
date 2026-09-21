@@ -8,8 +8,8 @@ or missing, tell whoever sent you the link.
 
 - Open the page in a web browser, like Chrome or Edge. The link is all you
   need; nothing to install, and it is always the newest version.
-- Click **open csv** and pick the open orders export (a `.csv` file) from the
-  office system.
+- Click **open csv** - or press **Ctrl+O** - and pick the open orders export
+  (a `.csv` file) from the office system.
 - A bar next to the button shows it loading; a big export takes a few
   seconds, most of it on "sorting orders".
 - The report appears. Narrow it down with the filters: see **Filtering**,
@@ -153,10 +153,15 @@ time, and then paste into the wave sheet in one go.
 
 **Click a row** to pick it. It goes a shade darker with a mark down its left
 edge. Click as many rows as you want - each click picks a row, and clicking a
-picked row lets it go again. The **bld** button, above the table on the right,
-counts them: it reads "bld 5 (b)" when five rows are picked. Click it, or just
-press **b**, and all five go on the list at once. The rows let go of
-themselves once they're on, so you can carry straight on picking the next few.
+picked row lets it go again. The **bld selection** button, above the table on
+the right, counts them: it reads "bld 5 (b)" when five rows are picked. Click
+it, or just press **b**, and all five go on the list at once. The rows let go
+of themselves once they're on, so you can carry straight on picking the next
+few.
+
+For a single row there is no need to pick it at all: the small **+** at the
+end of the row on the search tab puts that one row on, and leaves your picked
+rows alone.
 
 Press **Esc** to let go of all of them; press it again and it empties the
 filter bar. Changing tabs lets go of them too, so what the button says is
@@ -180,6 +185,7 @@ takes you to the inspect tab, the way it always has.
   if you want both parts.
 - **bld (ctrl+b)** at the right of a heading on the inspect tab puts what that
   heading names on, without picking any row first.
+- The **+** at the end of a row on the search tab puts that one row on.
 - **bld all (ctrl+b)** on the search tab puts on every row the filters picked -
   the whole report as you have narrowed it, not just the rows you clicked. So
   filter down to the wave you want, press **Ctrl+B**, and it is all on the list.
@@ -199,10 +205,11 @@ the sheet fills in its own - so what you paste lines up even though the table
 doesn't show them. A trip going to more than one customer lists them all; more
 than one ship method says how many ("2 ship methods").
 
-To take rows off, pick them the same way and press **d**, or use the **drop**
-button above the table, which counts them too. The small **x** at the end of a
-row takes off that one row. **clear (ctrl+d)** empties the list - all of it at
-once, with no way back, so mind that one.
+To take rows off, pick them the same way and press **d**, or use the **drop
+selection** button above the table, which counts them too. The small **x** at
+the end of a row takes off that one row, the way the **+** on search puts one
+on. **drop all (ctrl+d)** empties the list - all of it at once, with no way
+back, so mind that one.
 
 Opening a newer export keeps your list and reads every row's numbers from the
 new export, so the cases and dates are never stale. Anything that isn't in the
@@ -268,4 +275,5 @@ are more.
 - **Ctrl+C** - on build, copy the list. (With something selected on the page
   it copies that instead, the way it normally would.)
 - **Ctrl+D** - on build, empty the list.
+- **Ctrl+O** - on search, open an export.
 - **Ctrl+S** - on search, save the table.

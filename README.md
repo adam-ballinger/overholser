@@ -26,15 +26,18 @@ starting with the same letter is what would break it. Like Esc it works while
 a bar has the typing, since leaving the filter bar for inspect is what it is
 for, and `e.code` rather than `e.key`, since a Mac's Option turns the letter
 into a symbol.
-- **search** is the orders report. Pick an export (a text bar beside the button
-  shows the load: real progress while the file is read, then a step each for
-  `loadOrders` and drawing, since those run in one go; the page waits a short
-  timer, not a frame, before each so the bar shows and a background tab doesn't
-  stall). Type flags in the bar, Enter to run them, or click the flag buttons
-  under it (a flag that's already on the line comes off again). At the end of
-  the line, plain text rather than another button, is what **Esc** will do
-  (`showClear`): "clear picked (esc)" while rows are picked, "clear filters
-  (esc)" otherwise, and nothing at all when there is neither. `escape` does
+- **search** is the orders report. Pick an export with **open csv (ctrl+o)**;
+  the key clicks the hidden file input behind the button, and ctrl+o being the
+  browser's own key for opening a file is the reason to take it (a text bar
+  beside the button shows the load: real progress while the file is read, then
+  a step each for `loadOrders` and drawing, since those run in one go; the
+  page waits a short timer, not a frame, before each so the bar shows and a
+  background tab doesn't stall). Type flags in the bar, Enter to run them, or
+  click the flag buttons under it (a flag that's already on the line comes off
+  again). At the end of the line, plain text rather than another button, is
+  what **Esc** will do (`showClear`): "clear picked (esc)" while rows are
+  picked, "clear filters (esc)" otherwise, and nothing at all when there is
+  neither. `escape` does
   the nearer job first - lets the picked rows go, and only once there are none
   empties the bar - so Esc twice always ends at nothing picked and no filters.
   It is one listener on the whole document, not on the bar: the bar had it
@@ -56,9 +59,16 @@ into a symbol.
   the build list, so a filter line is a whole wave in one key. It takes `rows`,
   the rows the flags picked last, rather than the drawn `<tr>`s, since the
   second chunk of a long report may still be on its way; `addSpec` names what a
-  row puts on, the one `tableRows` gives each row. `addEntry` is one entry
-  without drawing and `addToBuild` the one-off that draws, so a whole report
-  going on redraws the list once rather than a thousand times.
+  row puts on, the one `tableRows` gives each row.
+  A **+** ends each report row and puts that one row on, the way the list's x
+  takes one off. `headingRow` and `tableRows` take a `plus`, so the column is
+  the page's table only and the saved one never grows a column that does
+  nothing in an email. The + carries its own `data-add` and the click listener
+  takes it before the row's own click, so pressing it doesn't also pick the row
+  it sits in.
+  `addEntry` is one entry without drawing and `addToBuild` the one-off that
+  draws, so a whole report going on redraws the list once rather than a
+  thousand times.
 - **inspect** shows one report row in full: type a trip or order number and
   Enter, or click one. Every trip and order number the page shows is a link
   here (a column's `find` names the numbers in its cell, `td` links each one,
@@ -86,12 +96,12 @@ into a symbol.
 - **build** is a list of trips and orders to paste into the wave sheet in one
   go. **Clicking a row** picks it (`tr.on`, a shade darker with a mark down its
   left edge) and clicking it again lets it go: a toggle, so no modifier to hold
-  and as many rows as you like. **bld** or **b** adds every picked row; the
-  button counts them ("bld 5 (b)"), since the rows may be scrolled away from
-  it, and `addPicked` lets them go once they're on the list, so the marks left
-  behind aren't in the way of the next few. Esc lets them go too, and so does
-  leaving the tab (`showTab` calls `unpick`), so what a button says is always
-  what you can see.
+  and as many rows as you like. **bld selection** or **b** adds every picked
+  row; the button counts them ("bld 5 (b)"), since the rows may be scrolled
+  away from it, and `addPicked` lets them go once they're on the list, so the
+  marks left behind aren't in the way of the next few. Esc lets them go too,
+  and so does leaving the tab (`showTab` calls `unpick`), so what a button says
+  is always what you can see.
   A row carries what it adds in `data-add`, as `"trip|order"` with one side
   empty: the report's rows a trip (or an order, when the row isn't on a trip),
   a trip's Orders rows that trip's own order. So a row adds itself and nothing
@@ -112,13 +122,14 @@ into a symbol.
   `BUILD_COLUMNS` is the wave sheet's eight cells less the two blanks it fills
   in itself, in its order. The list's own number starts each row and an x ends
   it - neither a column, since they count and act on the list rather than
-  saying anything the sheet takes. **drop** or **d** takes every picked row
-  off, highest place first since dropping one moves the rows under it up; the x
-  takes off the row it sits in; **clear** empties the list. `#buildTotals`
-  says what the list comes to (rows, orders, lines, cases), orders named once
-  the way the report's counts line does them. `#build-tab th, td` overrides the narrow-window rules,
-  since all six columns are in the paste. **copy build** is one `waveLine` per
-  row, newline separated, text only, no HTML: it's for pasting into the sheet,
+  saying anything the sheet takes. **drop selection** or **d** takes every
+  picked row off, highest place first since dropping one moves the rows under
+  it up; the x takes off the row it sits in; **drop all** empties the list.
+  `#buildTotals` says what the list comes to (rows, orders, lines, cases),
+  orders named once the way the report's counts line does them.
+  `#build-tab th, td` overrides the narrow-window rules, since all six columns
+  are in the paste. **copy build** is one `waveLine` per row, newline
+  separated, text only, no HTML: it's for pasting into the sheet,
   not an email. `waveLine` lists customers like the order numbers, each named
   once; ship method says how many when a trip has more than one ("2 ship
   methods"), like the report; the ship date is the earliest. The lists have a
@@ -143,8 +154,9 @@ tab-separated text. Adam asked for it out for now; it is in the history, and
 `toClipboard` lost the HTML half of its job with it.
 
 **The keys:** the ctrl ones belong to the tab showing, and each is the
-browser's own otherwise, so each says no to it - `ctrl+s` saves the table on
-search, `ctrl+c` copies the list and `ctrl+d` empties it on build. `ctrl+b` is
+browser's own otherwise, so each says no to it - `ctrl+o` opens an export and
+`ctrl+s` saves the table on search, `ctrl+c` copies the list and `ctrl+d`
+empties it on build. `ctrl+b` is
 whatever building means on the tab showing: every row the filters picked on
 search, what the heading names on inspect. Ctrl+C steps aside when something
 is selected, since copying a name out of a cell is what the browser's key is
@@ -280,6 +292,10 @@ Future.
 - **Buttons are lowercase**, like the tabs and the flags, and each says its
   key in brackets ("save table (ctrl+s)"). The page reads as typed commands,
   and a capital in the middle of that reads as a different kind of thing.
+- **A button says what it acts on** when more than one button does the same
+  job to a different set: "bld selection", "bld all", "drop selection", "drop
+  all". The one-row versions are marks in the row itself rather than buttons
+  up top - **+** on search puts that row on, **x** on build takes it off.
 - **Colors:** danger is white on red, warning white on orange, both on the text
   only, not the whole cell. A column's `color(row)` in `REPORT_COLUMNS` names
   the CSS class (`'danger'`, `'warning'`); `ITEM_TAGS` names each tag's class,
