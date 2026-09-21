@@ -88,6 +88,8 @@ into a symbol.
   names to the build list: the trip, or, when an order was looked up, that
   order. The button carries the number itself (`data-add`), so nothing has to
   remember which rows are on screen.
+  **save table (ctrl+s)** is above the lot, where search's is: the whole tab as
+  an HTML file, for sending one trip or order on (see save table, below).
   Then two tables: its orders (`TRIP_ORDER_COLUMNS`, soonest first) and its items
   (`TRIP_ITEM_COLUMNS`, short then split first, then most dollars). A new
   export redraws it. Table titles sit above the tables, not in a row: a fixed
@@ -150,14 +152,27 @@ selection would bring the page's window-wide columns); every column goes, even
 the ones the window is too narrow to show, with the group dividers, cells on
 one line and Items kept to 34 characters.
 
+**Inspect saves too** (`2026-09-21 wave trip 7953463.html`), so one trip or one
+order can be sent on the way the report can. `savePage` writes the file for
+both - a title, a line each for whatever else names it, then the body - and
+`inlineCells` gives one table its inline styles, which is what emailTable and
+inspect each need. Inspect's body is `detailHtml`: `tripView` cloned, its bld
+buttons dropped and `DETAIL_STYLES` put on the headings, facts and table
+titles, so the file can only say what the tab says. A split order saves every
+trip it is on, as shown. `shownTrip` is what the tab is showing ("trip
+7953463", "order 54001840"), the way `shownFlags` is what the report was
+filtered by: it names the file, and typing in the bar without Enter can't
+change it.
+
 A **copy table** button put the same table on the clipboard, as HTML and as
 tab-separated text. Adam asked for it out for now; it is in the history, and
 `toClipboard` lost the HTML half of its job with it.
 
 **The keys:** the ctrl ones belong to the tab showing, and each is the
-browser's own otherwise, so each says no to it - `ctrl+o` opens an export and
-`ctrl+s` saves the table on search, `ctrl+c` copies the list and `ctrl+d`
-empties it on build. `ctrl+b` is
+browser's own otherwise, so each says no to it - `ctrl+o` opens an export on
+search, `ctrl+c` copies the list and `ctrl+d` empties it on build. `ctrl+s`
+saves the table on both tabs that have one, the report on search and the trip
+or order on inspect. `ctrl+b` is
 whatever building means on the tab showing: every row the filters picked on
 search, what the heading names on inspect. Ctrl+C steps aside when something
 is selected, since copying a name out of a cell is what the browser's key is

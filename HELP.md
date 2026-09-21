@@ -264,6 +264,13 @@ picked and every column, even ones hidden on a small screen. Each cell stays
 on one line, and Items shows the row's biggest few items, then `…` if there
 are more.
 
+**The inspect tab saves the same way.** Look a trip or an order up, then
+**save table (ctrl+s)** above it, and you get one file with everything the tab
+shows - the heading, the facts, the orders and the items, colors and all,
+named for what you looked up (`2026-09-21 wave trip 7953463.html`). That's the
+one to send when someone asks about a single trip or order. An order on more
+than one trip saves every part of it, the way the tab shows them.
+
 ## The keys
 
 - **Alt+S**, **Alt+I**, **Alt+B**, **Alt+H** - show the search, inspect,
@@ -278,4 +285,5 @@ are more.
   it copies that instead, the way it normally would.)
 - **Ctrl+D** - on build, empty the list.
 - **Ctrl+O** - on search, open an export.
-- **Ctrl+S** - on search, save the table.
+- **Ctrl+S** - save the table: the report on search, the trip or order on
+  inspect.

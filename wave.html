@@ -196,6 +196,10 @@
   <div class="bar"><span>trip or order &gt;</span><input id="tripNumber" autocomplete="off" spellcheck="false"
     placeholder="a trip or order number; Enter shows it. Or click any number in search"></div>
   <div id="tripMessage" class="message"></div>
+  <!-- save acts on what's below it, the way search's does. -->
+  <div class="tools table-tools">
+    <button id="saveTrip">save table (ctrl+s)</button>
+  </div>
   <div id="tripView"></div>
 </section>
 <section id="build-tab" hidden>
@@ -502,11 +506,9 @@ const inlineStyle = cell => [cell.tagName === 'SPAN' ? 'padding:0 3px' : 'paddin
   cell.classList.contains('late') && `color:${DANGER};border-bottom-color:${DANGER}`,
 ].filter(Boolean).join(';');
 
-// The table as the email gets it: built apart from the page, so none of the page's own table styles (its
-// window-wide, fixed-width columns) come along; only the inline styles above.
-function emailTable() {
-  const table = document.createElement('table');
-  table.innerHTML = headingRow(COLUMNS_COPY) + tableRows(COLUMNS_COPY, rows);
+// One table with all of its styles inline, since neither a saved file nor a pasted copy carries the page's
+// stylesheet. Both tabs save through it: the report, and a trip's two tables.
+function inlineCells(table) {
   table.setAttribute('style', 'border-collapse:collapse;font-family:Consolas,monospace;font-size:12px');
   // The inspect tab's links mean nothing in an email: keep the number, drop the link.
   for (const link of table.querySelectorAll('a')) link.replaceWith(...link.childNodes);
@@ -517,7 +519,15 @@ function emailTable() {
     cell.removeAttribute('class');
     cell.removeAttribute('title');
   }
-  return table.outerHTML;
+  return table;
+}
+
+// The table as the email gets it: built apart from the page, so none of the page's own table styles (its
+// window-wide, fixed-width columns) come along; only the inline styles above.
+function emailTable() {
+  const table = document.createElement('table');
+  table.innerHTML = headingRow(COLUMNS_COPY) + tableRows(COLUMNS_COPY, rows);
+  return inlineCells(table).outerHTML;
 }
 
 // Puts exactly this text on the clipboard, instead of whatever the browser would make of a selection. True if
@@ -533,24 +543,30 @@ function toClipboard(text) {
   return copied;
 }
 
-// Saves the same table as an HTML file, under a heading that says what it is: the filters, the export and the
-// counts line. For when a pasted copy loses its formatting: open the file, or attach it.
-save.addEventListener('click', () => {
-  if (!rows.length) return;
-  const title = `wave orders ${shownFlags}`.trim();
+// Downloads one HTML file, headed by what it is: the title, then a line each of whatever else names it (the
+// export, the counts), then the body. The date starts the file's name ("2026-09-16 wave --late --thd.html",
+// en-CA writing the date that way), less the characters a Windows file name can't have, like the quotes
+// around a --shipto name.
+function savePage(title, name, lines, body) {
   const page = `<!doctype html>
 <html><head><meta charset="utf-8"><title>${esc(title)}</title></head>
 <body style="font-family:Consolas,monospace;font-size:12px">
-<p><b>${esc(title)}</b><br>${esc(filename.textContent)}<br>${esc(ordersTotals(rows))}</p>
-${emailTable()}
+<p><b>${esc(title)}</b><br>${lines.map(esc).join('<br>')}</p>
+${body}
 </body></html>`;
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([page], { type: 'text/html' }));
-  // "2026-09-16 wave --late --thd.html" (en-CA writes the date that way), without the characters a Windows
-  // file name can't have, like the quotes around a --shipto name.
-  link.download = `${new Date().toLocaleDateString('en-CA')} wave ${shownFlags}`.trim().replace(/[\\/:*?"<>|]/g, '') + '.html';
+  link.download = `${new Date().toLocaleDateString('en-CA')} ${name}`.trim().replace(/[\\/:*?"<>|]/g, '') + '.html';
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// Saves the report as an HTML file, under the filters, the export and the counts line. For when a pasted copy
+// loses its formatting: open the file, or attach it.
+save.addEventListener('click', () => {
+  if (!rows.length) return;
+  savePage(`wave orders ${shownFlags}`.trim(), `wave ${shownFlags}`,
+    [filename.textContent, ordersTotals(rows)], emailTable());
 });
 
 // ---- Inspect tab ----
@@ -607,6 +623,7 @@ function showTrip() {
   const number = tripNumber.value.trim();
   tripMessage.textContent = '';
   tripView.innerHTML = '';
+  shownTrip = '';
   if (!number) return;
   if (!data) { tripMessage.textContent = 'Open an export in the search tab first'; return; }
   const trip = data.filter(r => r.trip === number);
@@ -614,6 +631,7 @@ function showTrip() {
     .map(r => makeRow(r.orders.find(o => o.orderNumber === number).lines));
   if (!found.length) { tripMessage.textContent = `No trip or order ${number} in this export`; return; }
   if (found.length > 1) tripMessage.textContent = `Order ${number} is on ${found.length} rows`;
+  shownTrip = `${trip.length ? 'trip' : 'order'} ${number}`;
   tripView.innerHTML = found.map(r => `<div class="trip-detail">${tripDetail(r, !trip.length && number)}</div>`).join('');
 }
 tripNumber.addEventListener('keydown', e => { if (e.key === 'Enter') showTrip(); });
@@ -621,6 +639,45 @@ tripNumber.addEventListener('keydown', e => { if (e.key === 'Enter') showTrip();
 tripView.addEventListener('click', e => {
   const button = e.target.closest('button[data-add]');
   if (button && addToBuild(button.dataset.add)) celebrate(1);
+});
+
+// What the tab is showing now ("trip 7953463", "order 54001840"), the way shownFlags is what the report was
+// filtered by: it names the file save writes, and typing in the bar without Enter can't change it.
+let shownTrip = '';
+
+// The tab as a file: what's on screen, the bld buttons dropped and every style inline, so one trip or one
+// order can be sent on the way the report can. It's the page's own nodes cloned, so the file can only say
+// what the tab says. The greys are the stylesheet's, the colors inlineStyle's.
+const DETAIL_STYLES = [
+  ['h2', 'margin:22px 0 6px;font-size:17px'],
+  ['.stats', 'display:flex;flex-wrap:wrap;gap:2px 24px;margin:0 0 4px;color:#55534d'],
+  ['.headline', 'flex-basis:100%;color:#1b1b19'],
+  ['.stats b', 'font-weight:normal;color:#94918a'],
+  ['.group', `padding:14px 0 3px;border-bottom:1px solid ${BORDER};color:#94918a`],
+  ['.group b', 'color:#1b1b19;letter-spacing:1px'],
+  ['.muted', 'color:#94918a'],
+];
+function detailHtml() {
+  const view = tripView.cloneNode(true);
+  for (const button of view.querySelectorAll('button')) button.remove();
+  // The marks among the facts (a late ship date, a short alloc) are spans outside any table, so they take
+  // their style from inlineStyle the way a cell does.
+  for (const span of view.querySelectorAll('span.danger, span.warning, span.cyan')) {
+    span.setAttribute('style', inlineStyle(span));
+  }
+  for (const [selector, style] of DETAIL_STYLES) {
+    for (const node of view.querySelectorAll(selector)) node.setAttribute('style', style);
+  }
+  for (const table of view.querySelectorAll('table')) inlineCells(table);
+  for (const node of view.querySelectorAll('[class]')) node.removeAttribute('class');
+  return view.innerHTML;
+}
+
+// Saves the trip or order showing as an HTML file, headed by which one it is and the export it came from:
+// the same file the report saves, for one row in full. A split order saves every trip it is on, as shown.
+saveTrip.addEventListener('click', () => {
+  if (!shownTrip) return;
+  savePage(`wave ${shownTrip}`, `wave ${shownTrip}`, [filename.textContent], detailHtml());
 });
 
 // ---- Build tab ----
@@ -800,6 +857,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'd' && showing('build-tab')) { e.preventDefault(); clearBuild.click(); }
     if (e.key === 'o' && showing('search-tab')) { e.preventDefault(); csv.click(); }
     if (e.key === 's' && showing('search-tab')) { e.preventDefault(); save.click(); }
+    if (e.key === 's' && showing('inspect-tab')) { e.preventDefault(); saveTrip.click(); }
     // Ctrl+B is whatever building means on the tab showing: on search every row the filters picked, on
     // inspect what the heading names, since Enter in the bar has just looked it up and b on its own belongs
     // to the picked rows. An order on more than one trip shows a button per trip, but each names that same
