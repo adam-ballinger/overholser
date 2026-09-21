@@ -1,4 +1,4 @@
-# Overholser
+# wave
 
 Minimal text-style tools for a distribution service office, in a browser page.
 It will become a web app server later; for now it's one page, opened from a
@@ -6,17 +6,17 @@ file while working on it and served as a flat file from GitHub Pages, so design
 changes are fast. Keep the rules reusable by a future server.
 
 Plain JavaScript, no npm packages. Three files do the work:
-- `ovh.js`: the rules. Loading an export, allocating stock, building the
+- `wave.js`: the rules. Loading an export, allocating stock, building the
   report rows and columns (`makeRow` makes one out of any run of lines: a
   whole trip at load, one order of it when that order is looked up or put on
   the build list), and the filters.
-- `ovh.html`: the page on top of it. It loads `ovh.js` as a plain script and
+- `wave.html`: the page on top of it. It loads `wave.js` as a plain script and
   uses its names directly, so it only has to stay next to it.
 - `bundle.js` (Node.js v24): builds `index.html`, the one file the site serves.
 
 ## The page
 
-Open `ovh.html` in a browser; no server, no setup. It has tabs, one per tool;
+Open `wave.html` in a browser; no server, no setup. It has tabs, one per tool;
 more will come. Their names read as commands, like the filter bar: one word
 each, with the longer wording in the tab's tooltip. **Alt and a tab's first
 letter shows it** (`alt+s`, `alt+i`, `alt+b`, `alt+h`): the name is the key, so
@@ -130,7 +130,7 @@ into a symbol.
 
 **save table (ctrl+s)** sits at the right just above the table it acts on, away
 from open csv and the typing line. It downloads the report as an HTML file
-(`2026-09-16 ovh --late --thd.html`: the date, then the filters behind the
+(`2026-09-16 wave --late --thd.html`: the date, then the filters behind the
 table shown), headed by the filters, the export's name and the counts line:
 for Outlook, where a pasted copy loses its text formatting. `emailTable`
 builds it apart from the page, so only its inline styles go along (a copied
@@ -174,18 +174,20 @@ starts.
 The export is read in the browser and goes nowhere else.
 
 **To share it:** send the address. `node bundle.js` writes `index.html`, the
-page with `ovh.js`, `HELP.md` and the `version` from `package.json` inside it,
+page with `wave.js`, `HELP.md` and the `version` from `package.json` inside it,
 and GitHub Pages serves that one file at
 <https://adam-ballinger.github.io/overholser/> - nothing to set up, nothing to
 download. It is the only built file in the repo, since Pages serves what is
 committed and this project has no build step of its own to run there. So a
 change is live once the rebuilt `index.html` is pushed, and everyone is always
 on the newest one. The page header shows the version, so a tester's feedback
-still says which build they had.
+still says which build they had. The repo is still named `overholser`, which
+is the only reason the address says so; the app is `wave` everywhere else.
+Renaming the repo would change the address.
 
 The page is all there is to deploy: no server, no packages, and the export is
 read in the browser, so Pages never sees it. Pages needs the repo public,
-which puts `ovh.js` (including `FLR_MTL_ITEMS` and the channel names) on the
+which puts `wave.js` (including `FLR_MTL_ITEMS` and the channel names) on the
 open internet - no customer data, but check before adding anything internal.
 
 **Versions:** every push to the repo raises the patch number in `package.json`
@@ -193,9 +195,9 @@ open internet - no customer data, but check before adding anything internal.
 up when the work since the last one is a new tool, or something testers would
 notice. Claude judges which, raises it with the push and says so afterwards.
 `index.html` is built, not edited, so run `node bundle.js` again after
-changing `ovh.html`, `ovh.js`, `HELP.md` or the version - and push the new
+changing `wave.html`, `wave.js`, `HELP.md` or the version - and push the new
 `index.html`, or the site still shows the old one. The help and version are
-only in `index.html`, since `ovh.html` can't read files from disk; it says
+only in `index.html`, since `wave.html` can't read files from disk; it says
 "dev, not bundled" instead.
 
 ## Filters

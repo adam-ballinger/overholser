@@ -1,6 +1,6 @@
-# ovh help
+# wave help
 
-ovh shows the open orders export as a report you can filter, check and copy
+wave shows the open orders export as a report you can filter, check and copy
 into an email. This is an early test version: if something is confusing, wrong
 or missing, tell whoever sent you the link.
 
@@ -247,7 +247,7 @@ They cover just the rows your filters picked.
 
 **save table (ctrl+s)**, just above the table, saves the report as a file in
 your Downloads, named with the date and your filters, like
-`2026-09-16 ovh --late --thd.html`, and headed with the filters, the export's
+`2026-09-16 wave --late --thd.html`, and headed with the filters, the export's
 name and the counts. Open it in your browser, or attach it to an email.
 
 The file has the whole table in it, colors included - every row your filters

@@ -1,5 +1,5 @@
-// The rules behind ovh.html: loading an open orders export, allocating stock, building the report rows and
-// their columns, and the filters. ovh.html loads this as a plain script and uses the names below directly.
+// The rules behind wave.html: loading an open orders export, allocating stock, building the report rows and
+// their columns, and the filters. wave.html loads this as a plain script and uses the names below directly.
 
 // Splits CSV text into rows of fields. Handles "quoted, fields" and "" escapes.
 function parseCsv(text) {
@@ -205,7 +205,7 @@ const mdy = d => d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit
 const WARNING_STATUSES = ['Holds', 'Awaiting', 'Booked', 'Entered'];
 const warnStatus = status => WARNING_STATUSES.includes(status) && 'warning';
 
-// The report's columns. width: in characters, the page's share for the column (see ovh.html). color(row): the
+// The report's columns. width: in characters, the page's share for the column (see wave.html). color(row): the
 // color class for the cell, if any: 'danger' (red), 'warning' (orange). Allocation is red when short, orange when
 // split; Line Statuses is orange when the row's own status (what --holds and the other status flags filter on)
 // is Holds. Items, last, is as many of the row's items as fit (see itemsCell), after its tags: 144" (orange)
@@ -215,7 +215,7 @@ const ITEMS_WIDTH = 34;
 // The tags that can start an Items cell, in order: [text, the row property that turns it on, its color class].
 const ITEM_TAGS = [[TAG144, 'has144', 'warning'], ['flr-mtl', 'flrMtl', 'cyan']];
 // The tags a row (or one of its items) starts its cell with, each followed by a space. A column with tags: true
-// puts them in front of its value and the page colors them (see td in ovh.html).
+// puts them in front of its value and the page colors them (see td in wave.html).
 const itemTags = row => ITEM_TAGS.filter(([, key]) => row[key]).map(([text]) => text + ' ').join('');
 
 // As many of the row's items as fit, biggest dollars first, after its tags, ending in "..." if any are left out.
@@ -242,7 +242,7 @@ const STATUSES_COLUMN = { heading: 'Line Statuses', width: 34, value: r => r.lin
 const SHIP_DATE_COLUMN = { heading: 'Ship Date', width: 10, value: r => mdy(r.shipDate), color: r => r.late && 'danger' };
 
 // id: shown in the order number color. find: the numbers in the cell the page links to the inspect tab, where
-// they're looked up (see td in ovh.html); every trip and order number the page shows is one.
+// they're looked up (see td in wave.html); every trip and order number the page shows is one.
 const REPORT_COLUMNS = [
   { heading: 'Trip', width: 7, find: r => [r.trip], value: r => r.trip },
   // Three order numbers, then "..." if there are more; the Orders column counts them.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ovh</title>
+<title>wave</title>
 <style>
   /* Named once here so emailTable's inlineStyle (further down) can read the same values instead of
      repeating the hex: a saved or emailed table can never show different colors than the page. */
@@ -14,7 +14,7 @@
   button, .button { font: inherit; padding: 2px 10px; border: 1px solid #c9c6bf; background: #f2f0eb;
                     color: inherit; cursor: pointer }
   button:hover, .button:hover { background: #e8e5de }
-  /* Header: the logo, a truck hauling "ovh", with the name and version beside it (under it on a phone).
+  /* Header: the logo, a truck hauling "wave", with the name and version beside it (under it on a phone).
      Line height 1 so the box and block characters join up. Only characters Consolas has, so it lines up
      on any Windows machine. */
   header { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 20px; margin-bottom: 10px }
@@ -154,13 +154,13 @@
 </head>
 <body>
 <header>
-<pre class="logo" role="img" aria-label="ovh">
-     <span class="frame">┌─────────────────────┐</span>
-<span class="speed">  ── </span><span class="frame">│</span> ▄▀▀▀▄  █   █  █   █ <span class="frame">│ ┌───┐</span>
-<span class="speed"> ─── </span><span class="frame">│</span> █   █  ▀▄ ▄▀  █▀▀▀█ <span class="frame">│═╡ <span class="lamp">▪</span> └┐</span>
-<span class="speed">   ─ </span><span class="frame">│</span>  ▀▀▀     ▀    ▀   ▀ <span class="frame">│ │    │</span>
-     <span class="frame">└──●─●───────────●─●──┘ └●──●┘</span></pre>
-<div class="brand"><b>overholser</b><br>open orders, sorted<br><span id="version"></span></div>
+<pre class="logo" role="img" aria-label="wave">
+     <span class="frame">┌─────────────────────────┐</span>
+<span class="speed">  ── </span><span class="frame">│</span> █   █ ▄▀▀▀▄ █   █ ▄▀▀▀▀ <span class="frame">│ ┌───┐</span>
+<span class="speed"> ─── </span><span class="frame">│</span> █ ▀ █ █▀▀▀█ ▀▄ ▄▀ █▀▀▀  <span class="frame">│═╡ <span class="lamp">▪</span> └┐</span>
+<span class="speed">   ─ </span><span class="frame">│</span> ▀▀ ▀▀ ▀   ▀   ▀   ▀▀▀▀▀ <span class="frame">│ │    │</span>
+     <span class="frame">└──●─●───────────────●─●──┘ └●──●┘</span></pre>
+<div class="brand"><b>wave</b><br>open orders, sorted<br><span id="version"></span></div>
 </header>
 <!-- The tabs read as commands, like the filter bar: one word each, with the longer wording in the tooltip. -->
 <nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered (alt+s)">search</button><button
@@ -208,11 +208,11 @@
 <section id="help-tab" class="help" hidden></section>
 </main>
 
-<script src="ovh.js"></script>
+<script src="wave.js"></script>
 <script>
-// The page: tabs, the orders report, the help. All the loading, allocating and filtering is ovh.js's,
+// The page: tabs, the orders report, the help. All the loading, allocating and filtering is wave.js's,
 // loaded above as a plain script: everything it defines at the top level is a name this script can use.
-// What bundle.js puts in for the built "ovh v<version>.html", since the page can't read files itself:
+// What bundle.js puts in for the built "index.html", since the page can't read files itself:
 // { version } from package.json and { help } from HELP.md.
 const BUNDLE = null;
 version.textContent = BUNDLE ? `v${BUNDLE.version}` : 'dev, not bundled';
@@ -249,7 +249,7 @@ const esc = text => text.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '
 
 // One cell. title shows the whole value when the column is too narrow for it. A color marks just the text, not
 // the whole cell; in Items it's only the tags at the front (144", flr-mtl), each in its own color. The columns
-// (and ITEM_TAGS) in ovh.js name the color class. The column's find names the trip and order numbers in the
+// (and ITEM_TAGS) in wave.js name the color class. The column's find names the trip and order numbers in the
 // cell: each one becomes a link that looks it up in the inspect tab (the cell holds them space-separated).
 function td(c, r) {
   const text = String(c.value(r));
@@ -383,7 +383,7 @@ const bodyRows = (columns, rs, add) => rs.map(r => bodyRow(columns, r, add?.(r))
 
 // Every flag the report takes, as buttons that type themselves into the bar: a row for each tag group (ship
 // dates, channels, allocation, status, mode), the other plain flags, then the two that take a name. The lists
-// are ovh.js's own, so a new flag turns up here on its own.
+// are wave.js's own, so a new flag turns up here on its own.
 tags.innerHTML = [...TAG_GROUPS, OTHER_FLAGS, NAMES].map(group =>
   `<div>${group.map(n => `<button data-flag="${n}">--${n}</button>`).join('')}</div>`).join('');
 
@@ -527,7 +527,7 @@ function toClipboard(text) {
 // counts line. For when a pasted copy loses its formatting: open the file, or attach it.
 save.addEventListener('click', () => {
   if (!rows.length) return;
-  const title = `ovh orders ${shownFlags}`.trim();
+  const title = `wave orders ${shownFlags}`.trim();
   const page = `<!doctype html>
 <html><head><meta charset="utf-8"><title>${esc(title)}</title></head>
 <body style="font-family:Consolas,monospace;font-size:12px">
@@ -536,9 +536,9 @@ ${emailTable()}
 </body></html>`;
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([page], { type: 'text/html' }));
-  // "2026-09-16 ovh --late --thd.html" (en-CA writes the date that way), without the characters a Windows
+  // "2026-09-16 wave --late --thd.html" (en-CA writes the date that way), without the characters a Windows
   // file name can't have, like the quotes around a --shipto name.
-  link.download = `${new Date().toLocaleDateString('en-CA')} ovh ${shownFlags}`.trim().replace(/[\\/:*?"<>|]/g, '') + '.html';
+  link.download = `${new Date().toLocaleDateString('en-CA')} wave ${shownFlags}`.trim().replace(/[\\/:*?"<>|]/g, '') + '.html';
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 });
@@ -616,7 +616,7 @@ tripView.addEventListener('click', e => {
 // ---- Build tab ----
 
 // The trips and orders to paste into the wave sheet, in the order they were added. Entries rather than rows
-// ({ trip, order }, order being '' for a whole trip): a new export makes new rows, so buildRow in ovh.js looks
+// ({ trip, order }, order being '' for a whole trip): a new export makes new rows, so buildRow in wave.js looks
 // each entry up again every time the list is drawn, which refreshes them and drops whatever has gone.
 let build = [];
 
@@ -855,7 +855,7 @@ function markdown(text) {
 }
 
 document.getElementById('help-tab').innerHTML = BUNDLE ? markdown(BUNDLE.help)
-  : '<p>The help shows here in the built "ovh v<version>.html". Build that with <code>node bundle.js</code>.</p>';
+  : '<p>The help shows here in the built "index.html". Build that with <code>node bundle.js</code>.</p>';
 </script>
 </body>
 </html>
