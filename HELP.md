@@ -193,9 +193,10 @@ takes you to the inspect tab, the way it always has.
 - Adding something already on the list does nothing, so nothing can be pasted
   into the sheet twice.
 
-Across the top the list says what it comes to: how many rows, orders, lines
-and cases. Under that are the six things the wave sheet wants - trip, order
-numbers, customer, ship method, ship date and cases - numbered down the side.
+Across the top the list says what it comes to: total dollars first, then how
+many rows, orders, lines and cases. Under that are the six things the wave
+sheet wants - trip, order numbers, customer, ship method, ship date and cases
+- numbered down the side.
 
 **copy build (ctrl+c)** puts the whole list on the clipboard, one line per row, and
 **Ctrl+V** pastes it into the sheet. Each value lands in its own cell, and the

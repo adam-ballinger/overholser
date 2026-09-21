@@ -134,6 +134,7 @@
   #buildTotals.jackpot div:nth-child(2) { animation-delay: .08s }
   #buildTotals.jackpot div:nth-child(3) { animation-delay: .16s }
   #buildTotals.jackpot div:nth-child(4) { animation-delay: .24s }
+  #buildTotals.jackpot div:nth-child(5) { animation-delay: .32s }
   /* Fixed, not absolute: the header scrolls away in a long report and the count still has to be seen. */
   .pop { position: fixed; z-index: 2; transform: translate(-50%, 0); pointer-events: none;
          color: var(--pop); font-weight: 600; animation: rise .9s ease-out forwards }
@@ -656,11 +657,12 @@ function drawBuild() {
   countSelected();
   buildTab.textContent = build.length ? `build ${build.length}` : 'build';
   buildTotals.innerHTML = rows.length ? [
-    ['rows', rows.length],
-    ['orders', new Set(rows.flatMap(r => r.orderNumbers)).size],
-    ['lines', rows.reduce((t, r) => t + r.lines.length, 0)],
-    ['cases', total(rows, 'cases')],
-  ].map(([label, n]) => `<div>${n.toLocaleString()}<span>${label}</span></div>`).join('') : '';
+    ['dollars', money(total(rows, 'dollars'))],
+    ['rows', rows.length.toLocaleString()],
+    ['orders', new Set(rows.flatMap(r => r.orderNumbers)).size.toLocaleString()],
+    ['lines', rows.reduce((t, r) => t + r.lines.length, 0).toLocaleString()],
+    ['cases', total(rows, 'cases').toLocaleString()],
+  ].map(([label, n]) => `<div>${n}<span>${label}</span></div>`).join('') : '';
   // The number in front and the × behind are the list's own, not columns: they count and act on the list
   // rather than saying anything the wave sheet takes.
   buildView.innerHTML = rows.length

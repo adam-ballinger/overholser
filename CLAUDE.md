@@ -1,3 +1,12 @@
+# Philosophy
+
+- Simplest possible thing. No hypotheticals, no abstractions.
+- Zero dependencies. Stdlib only.
+- Tiny code, tiny docs.
+- Dev speed and compute efficiency > polish.
+- One script, one job.
+- Flat folder structure — don't split into folders that only hold a couple files each.
+
 # CLAUDE.md
 
 ## Asking questions and explaining things to Adam

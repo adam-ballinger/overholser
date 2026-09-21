@@ -125,8 +125,9 @@ into a symbol.
   saying anything the sheet takes. **drop selection** or **d** takes every
   picked row off, highest place first since dropping one moves the rows under
   it up; the x takes off the row it sits in; **drop all** empties the list.
-  `#buildTotals` says what the list comes to (rows, orders, lines, cases),
-  orders named once the way the report's counts line does them.
+  `#buildTotals` says what the list comes to (dollars first, then rows,
+  orders, lines, cases), orders named once the way the report's counts line
+  does them.
   `#build-tab th, td` overrides the narrow-window rules, since all six columns
   are in the paste. **copy build** is one `waveLine` per row, newline
   separated, text only, no HTML: it's for pasting into the sheet,
