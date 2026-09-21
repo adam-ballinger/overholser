@@ -89,7 +89,8 @@ into a symbol.
   order. The button carries the number itself (`data-add`), so nothing has to
   remember which rows are on screen.
   **save table (ctrl+s)** is above the lot, where search's is: the whole tab as
-  an HTML file, for sending one trip or order on (see save table, below).
+  an HTML file, and **copy table (ctrl+c)** beside it is the same trip or order
+  as plain text (see save table and copy table, below).
   Then two tables: its orders (`TRIP_ORDER_COLUMNS`, soonest first) and its items
   (`TRIP_ITEM_COLUMNS`, short then split first, then most dollars). A new
   export redraws it. Table titles sit above the tables, not in a row: a fixed
@@ -164,20 +165,32 @@ trip it is on, as shown. `shownTrip` is what the tab is showing ("trip
 filtered by: it names the file, and typing in the bar without Enter can't
 change it.
 
-A **copy table** button put the same table on the clipboard, as HTML and as
-tab-separated text. Adam asked for it out for now; it is in the history, and
+**Copy table (ctrl+c) on inspect** is the same trip or order as plain text, for
+writing an email around rather than attaching a file to. `detailText` reads the
+heading and the facts off the tab, the way `detailHtml` clones it, and builds
+the two tables from the row it is showing (`shownRows`), since they are a
+shorter set of columns than the tab's: the orders lose PO, delivery, customer,
+hold, lines and line statuses, the items lose orders, onhand, lines and line
+statuses (`COPY_ORDER_COLUMNS`, `COPY_ITEM_COLUMNS`), and nothing is wider than
+`COPY_WIDTH`, 26 characters, since the page gives a text column 40. `textTable`
+pads each column to its widest cell, so it lines up in a fixed-width font and
+survives a message that strips formatting - what the button is for. Tabs are
+the build list's way, for a spreadsheet; an email gets spaces.
+
+The search tab's own copy table button put the report on the clipboard as HTML
+and as tab-separated text. Adam asked for it out; it is in the history, and
 `toClipboard` lost the HTML half of its job with it.
 
 **The keys:** the ctrl ones belong to the tab showing, and each is the
 browser's own otherwise, so each says no to it - `ctrl+o` opens an export on
-search, `ctrl+c` copies the list and `ctrl+d` empties it on build. `ctrl+s`
-saves the table on both tabs that have one, the report on search and the trip
-or order on inspect. `ctrl+b` is
-whatever building means on the tab showing: every row the filters picked on
-search, what the heading names on inspect. Ctrl+C steps aside when something
-is selected, since copying a name out of a cell is what the browser's key is
-for. The alt ones are the tabs, above, and the only keys that work from any
-tab.
+search, `ctrl+d` empties the list on build. `ctrl+c` copies on both tabs that
+have something to copy, the list on build and the trip or order on inspect, and
+`ctrl+s` saves the table on both tabs that have one, the report on search and
+the trip or order on inspect. `ctrl+b` is whatever building means on the tab
+showing: every row the filters picked on search, what the heading names on
+inspect. Ctrl+C steps aside when something is selected, since copying a name
+out of a cell is what the browser's key is for. The alt ones are the tabs,
+above, and the only keys that work from any tab.
 
 **What building feels like:** adding rows is what a worker does over and over,
 so it gives a little back. `celebrate` rolls the truck in the header (the

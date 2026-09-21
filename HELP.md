@@ -141,6 +141,10 @@ are two tables:
 
 On a phone some columns are hidden.
 
+**copy table (ctrl+c)** and **save table (ctrl+s)**, above the lot, send what
+you are looking at on - as plain text for an email, or as a file (see
+**Sending the report on**).
+
 **bld (ctrl+b)**, at the right of the heading, puts what the heading names on
 the build list (see **Building a list for the wave sheet**, next) - the trip,
 or the order when you looked an order up. **Ctrl+B** does the same without
@@ -271,6 +275,17 @@ named for what you looked up (`2026-09-21 wave trip 7953463.html`). That's the
 one to send when someone asks about a single trip or order. An order on more
 than one trip saves every part of it, the way the tab shows them.
 
+**copy table (ctrl+c)**, beside it, puts the same trip or order on the
+clipboard as plain text, for typing an email around rather than attaching a
+file to. It's shorter than the tab: the heading and the facts as they read on
+screen, then the orders with just their ship to, ship date, allocation, cases
+and dollars, and the items with just their description, pieces, allocation,
+cases and dollars. Paste it into the message with **Ctrl+V** - there is no
+formatting on it, so it arrives in whatever you are already writing in. The
+columns are lined up with spaces, so they sit straight in a fixed-width font
+like Consolas or Courier. Attach the saved file instead when the colors or the
+columns it leaves out matter.
+
 ## The keys
 
 - **Alt+S**, **Alt+I**, **Alt+B**, **Alt+H** - show the search, inspect,
@@ -281,8 +296,9 @@ than one trip saves every part of it, the way the tab shows them.
 - **Esc** - let go of the picked rows; again, empty the filter bar.
 - **Ctrl+B** - on search, put every row the filters picked on the list; on
   inspect, put what the heading names on.
-- **Ctrl+C** - on build, copy the list. (With something selected on the page
-  it copies that instead, the way it normally would.)
+- **Ctrl+C** - on build, copy the list; on inspect, copy the trip or order as
+  plain text. (With something selected on the page it copies that instead, the
+  way it normally would.)
 - **Ctrl+D** - on build, empty the list.
 - **Ctrl+O** - on search, open an export.
 - **Ctrl+S** - save the table: the report on search, the trip or order on
