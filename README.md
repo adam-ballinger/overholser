@@ -205,8 +205,10 @@ open internet - no customer data, but check before adding anything internal.
 
 **Versions:** every push to the repo raises the patch number in `package.json`
 (0.1.0 → 0.1.1), committed with that push. The minor number (0.1 → 0.2) goes
-up when the work since the last one is a new tool, or something testers would
-notice. Claude judges which, raises it with the push and says so afterwards.
+up when the work since the last one is a new tool, or a change in how the page
+works that a tester would meet without looking for it. A filter is a patch: the
+bar already takes thirty, and one more is nothing to anyone who doesn't type
+it. Claude judges which, raises it with the push and says so afterwards.
 `index.html` is built, not edited, so run `node bundle.js` again after
 changing `wave.html`, `wave.js`, `HELP.md` or the version - and push the new
 `index.html`, or the site still shows the old one. The help and version are
