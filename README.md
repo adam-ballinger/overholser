@@ -157,8 +157,9 @@ into a symbol.
   space after the comma, since Excel reads a pasted cell as if it were typed
   and makes "54055633,54055634" one huge number (the comma is its thousands
   separator) - the space keeps the cell text.
-- **kpi** is one small table, `kpiMatrix`: cases across by the shift that owns
-  the line's sales channel (1st shift: HOME DEPOT-OK, LOWES-OK, ACE HDW-OK,
+- **kpi** is one small table, `kpiMatrix`: the **late** lines' cases (the
+  report's own `late`, a Ship Date Category ending in "Late"), across by the
+  shift that owns the line's sales channel (1st shift: HOME DEPOT-OK, LOWES-OK, ACE HDW-OK,
   ORGILL-OK, DISTRIBUTORS&FIELD SALES-OK; 2nd shift: MENARDS-OK), down by who
   works its line status (holds and ready are Nicole's, holds being Entered,
   Booked or Awaiting; picked/released is Brad's and Nikki's), with a total each
@@ -171,7 +172,10 @@ into a symbol.
   LOWES-NO, ECOMMERCE-OK, the rare ones) is left out, which is what makes the
   totals add up across and down; Adam chose that over a total that doesn't
   match its columns. It covers the whole export rather than the filtered rows:
-  it is the day's picture, not a report. A new export redraws it
+  it is the day's picture of what is already behind, not a report; `#kpiLate`
+  above the table says so, since a number with nothing beside it reads as
+  everything. Late goes line by line, like the 144" tag: a trip with one late
+  line brings that line and not the rest of it. A new export redraws it
   (`drawKpi`). **Clicking a number copies it** as the plain text it shows,
   commas and all, since Excel reads a single pasted "1,998" as the number:
   reading one is usually the first half of putting it somewhere else. The line

@@ -447,9 +447,11 @@ const rowMatches = (row, filters) => linesMatch(row.lines, filters)
 
 // ---- The KPI matrix ----
 
-// Cases by who owns the line: the shift that owns its sales channel across, the person who works its line
-// status down. A line on a channel neither shift owns (HOME DEPOT.COM-OK, LOWES-BR, LOWES-NO, ECOMMERCE-OK
-// and the rare ones) is left out, so the totals always add up across and down.
+// Cases on the late lines, by who owns them: the shift that owns the line's sales channel across, the person
+// who works its line status down. Late is the report's own late (the Ship Date Category ending in "Late": 1-3,
+// 4-8 or 9+ days), line by line, so a trip with one late line brings that line and not the rest of it - the
+// matrix is what is already behind, not what is open. A line on a channel neither shift owns (HOME DEPOT.COM-OK,
+// LOWES-BR, LOWES-NO, ECOMMERCE-OK and the rare ones) is left out, so the totals add up across and down.
 const KPI_SHIFTS = [
   ['1st shift', 'Brad', ['HOME DEPOT-OK', 'LOWES-OK', 'ACE HDW-OK', 'ORGILL-OK', 'DISTRIBUTORS&FIELD SALES-OK']],
   ['2nd shift', 'Nikki', ['MENARDS-OK']],
@@ -466,6 +468,7 @@ const KPI_COLUMNS = [...KPI_SHIFTS.map(([name]) => name), 'total'];
 function kpiMatrix(rows) {
   const cases = KPI_STATUSES.map(() => KPI_SHIFTS.map(() => 0));
   for (const l of rows.flatMap(r => r.lines)) {
+    if (!late(l)) continue;
     const shift = KPI_SHIFTS.findIndex(([, , channels]) => channels.includes(l.salesChannel));
     if (shift < 0) continue;
     const status = KPI_STATUSES.findIndex(([, statuses]) => statuses.includes(l.lineStatus));

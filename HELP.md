@@ -241,22 +241,26 @@ reloading the page empties it, like everything else here.
 
 ## The kpi tab
 
-A small table of cases: who owns the orders across the top, who works them
-down the side.
+A small table of the cases that are **late**: who owns them across the top,
+who works them down the side. Nothing that is due today or later is in it - the
+tab is what is already behind.
 
+- **Late** is the report's own late, the same as the `--late` filter: 1-3, 4-8
+  or 9+ days late. It goes line by line, so a trip with one late line puts
+  that line in the table and leaves the rest of the trip out.
 - **1st shift** is Home Depot, Lowes, Ace, Orgill and Distributors & Field
   Sales. **2nd shift** is Menards. Under the table each shift is written out
   in full - whose it is, and the sales channels it owns - so you never have to
   remember them.
 - **holds (Nicole)**, **ready (Nicole)** and **picked/released (Brad, Nikki)**
   are the line's status.
-- Each cell is the cases on those lines, counted line by line, not order by
-  order. The totals add up both ways.
+- Each cell is the cases on those late lines, counted line by line, not order
+  by order. The totals add up both ways.
 - **Click any number to copy it.** It goes on the clipboard as plain text,
   ready to paste into a message or a spreadsheet with Ctrl+V, and the line
   under the table says what went.
-- It covers the whole export, not the rows your filters picked, and it
-  redraws when you open a newer one.
+- It covers the whole export - every late line in it, not the rows your
+  filters picked - and it redraws when you open a newer one.
 - Sales channels that are neither shift's - Home Depot.com, the other Lowes,
   Ecommerce and the rare ones - are left out entirely.
 

@@ -118,6 +118,7 @@
   #kpi-tab th, #kpi-tab td { padding-right: 28px }
   #kpi-tab .total td { padding-top: 5px; border-top: 1px solid var(--border) }
   #kpi-tab .num { cursor: pointer }
+  #kpiLate { margin-bottom: 12px; color: #55534d }
   #kpiNote { margin-top: 18px; color: #55534d }
   #kpiCopied { margin-top: 10px; color: #94918a }
 
@@ -231,6 +232,7 @@
 
 <section id="kpi-tab" hidden>
   <div id="kpiMessage" class="message"></div>
+  <div id="kpiLate">cases on late lines only (1-3, 4-8 and 9+ days late)</div>
   <table id="kpiTable"></table>
   <div id="kpiNote"></div>
   <div id="kpiCopied"></div>
@@ -1027,8 +1029,10 @@ copyBuild.addEventListener('click', () => {
 
 // ---- KPI tab ----
 
-// The whole export as a matrix of cases (kpiMatrix): the shift that owns the line's sales channel across, the
-// person who works its line status down. The filter bar isn't in it - it is the day's picture, not a report.
+// The whole export as a matrix of cases (kpiMatrix): its late lines, the shift that owns the line's sales
+// channel across, the person who works its line status down. The filter bar isn't in it - it is the day's
+// picture, not a report - and #kpiLate above the table says late is all it counts, since a number with nothing
+// beside it reads as everything.
 // Clicking a number copies it, since the reason to read one is usually to put it somewhere else.
 const COPY_A_NUMBER = 'click a number to copy it';
 
