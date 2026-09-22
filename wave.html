@@ -110,6 +110,11 @@
   /* Six columns and every one of them is in the paste, so the narrow-window rules above leave them alone. */
   #build-tab th, #build-tab td { display: table-cell }
 
+  /* KPI tab: four short columns, so the table is as wide as it needs and no wider. */
+  #kpi-tab table { width: auto; table-layout: auto }
+  #kpi-tab th, #kpi-tab td { padding-right: 28px }
+  #kpi-tab .total td { padding-top: 5px; border-top: 1px solid var(--border) }
+
   /* Putting rows on the build list gives a little back: the truck rolls, its lamp blinks and the count floats
      up over the tab, in a color picked fresh each time (--pop). Now and then it comes up big (.crit), and the
      copy - the thing all the picking was for - runs longest (.big). */
@@ -170,6 +175,7 @@
 <nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered (alt+s)">search</button><button
   data-tab="inspect-tab" title="One trip, or one order, in full (alt+i)">inspect</button><button
   id="buildTab" data-tab="build-tab" title="The list you build for the wave sheet (alt+b)">build</button><button
+  data-tab="kpi-tab" title="Cases by shift and status (alt+k)">kpi</button><button
   data-tab="help-tab" title="How to use this page (alt+h)">help</button></nav>
 <main>
 <section id="search-tab">
@@ -215,6 +221,10 @@
   <div id="buildView"></div>
 </section>
 
+<section id="kpi-tab" hidden>
+  <div id="kpiMessage" class="message"></div>
+  <table id="kpiTable"></table>
+</section>
 <section id="help-tab" class="help" hidden></section>
 </main>
 
@@ -461,6 +471,7 @@ csv.addEventListener('change', async () => {
   render();
   showTrip();
   drawBuild();
+  drawKpi();
   showProgress(1, `done in ${((performance.now() - start) / 1000).toFixed(1)}s`);
   progressTimer = setTimeout(() => progress.textContent = '', 4000);
   flags.focus();
@@ -978,6 +989,21 @@ copyBuild.addEventListener('click', () => {
     setTimeout(() => copyBuild.textContent = 'copy build (ctrl+c)', 4000);
   }
 });
+
+// ---- KPI tab ----
+
+// The whole export as a matrix of cases (kpiMatrix): the shift that owns the line's sales channel across, the
+// person who works its line status down. The filter bar isn't in it - it is the day's picture, not a report.
+function drawKpi() {
+  kpiMessage.textContent = data ? '' : 'Open an export in the search tab first';
+  if (!data) { kpiTable.innerHTML = ''; return; }
+  const matrix = kpiMatrix(data);
+  kpiTable.innerHTML = `<tr><th></th>${KPI_COLUMNS.map(h => `<th class="right">${h}</th>`).join('')}</tr>`
+    + matrix.map(([label, ...cases], i) =>
+      `<tr${i === matrix.length - 1 ? ' class="total"' : ''}><td>${label}</td>`
+      + cases.map(n => `<td class="right">${n.toLocaleString()}</td>`).join('') + '</tr>').join('');
+}
+drawKpi();
 
 // ---- Help tab ----
 

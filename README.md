@@ -19,7 +19,7 @@ Plain JavaScript, no npm packages. Three files do the work:
 Open `wave.html` in a browser; no server, no setup. It has tabs, one per tool;
 more will come. Their names read as commands, like the filter bar: one word
 each, with the longer wording in the tab's tooltip. **Alt and a tab's first
-letter shows it** (`alt+s`, `alt+i`, `alt+b`, `alt+h`): the name is the key, so
+letter shows it** (`alt+s`, `alt+i`, `alt+b`, `alt+k`, `alt+h`): the name is the key, so
 there is nothing to remember, and the tooltip says it. It is read off the
 buttons themselves, so a new tab gets its key by being named - two tabs
 starting with the same letter is what would break it. Like Esc it works while
@@ -157,6 +157,19 @@ into a symbol.
   space after the comma, since Excel reads a pasted cell as if it were typed
   and makes "54055633,54055634" one huge number (the comma is its thousands
   separator) - the space keeps the cell text.
+- **kpi** is one small table, `kpiMatrix`: cases across by the shift that owns
+  the line's sales channel (1st shift Brad: HOME DEPOT-OK, LOWES-OK, ACE
+  HDW-OK, ORGILL-OK, DISTRIBUTORS&FIELD SALES-OK; 2nd shift Nikki: MENARDS-OK),
+  down by who works its line status (holds Adam: Entered, Booked, Awaiting;
+  ready Nicole; picked/released Brad and Nikki), with a total each way. Cases
+  by line, not by order or row, so it flattens `data`'s rows back to their
+  lines - lines group by trip, so each line is on exactly one row and none is
+  counted twice. A channel neither shift owns (HOME DEPOT.COM-OK, LOWES-BR,
+  LOWES-NO, ECOMMERCE-OK, the rare ones) is left out, which is what makes the
+  totals add up across and down; Adam chose that over a total that doesn't
+  match its columns. It covers the whole export rather than the filtered rows:
+  it is the day's picture, not a report. A new export redraws it
+  (`drawKpi`). Nothing to save or copy yet - ask if it's wanted.
 - **help** is `HELP.md`: plain-language instructions for the people using the
   page, not this file. Keep it current when what the page does changes.
 

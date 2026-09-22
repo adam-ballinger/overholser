@@ -17,9 +17,9 @@ or missing, tell whoever sent you the link.
 - The report appears. Narrow it down with the filters: see **Filtering**,
   next.
 - To start over with a newer export, click **open csv** again.
-- The four tabs across the top are the tools. Click one, or hold **Alt** and
+- The five tabs across the top are the tools. Click one, or hold **Alt** and
   press its first letter: **Alt+S** search, **Alt+I** inspect, **Alt+B**
-  build, **Alt+H** help.
+  build, **Alt+K** kpi, **Alt+H** help.
 
 Your export stays on your computer. Nothing is uploaded or saved anywhere:
 close or reload the page and it's gone.
@@ -224,6 +224,22 @@ new export, so the cases and dates are never stale. Anything that isn't in the
 new export any more - a trip that has shipped - drops off the list. Closing or
 reloading the page empties it, like everything else here.
 
+## The kpi tab
+
+A small table of cases: who owns the orders across the top, who works them
+down the side.
+
+- **1st shift (Brad)** is Home Depot, Lowes, Ace, Orgill and Distributors &
+  Field Sales. **2nd shift (Nikki)** is Menards.
+- **holds (Adam)**, **ready (Nicole)** and **picked/released (Brad, Nikki)**
+  are the line's status.
+- Each cell is the cases on those lines, counted line by line, not order by
+  order. The totals add up both ways.
+- It covers the whole export, not the rows your filters picked, and it
+  redraws when you open a newer one.
+- Sales channels that are neither shift's - Home Depot.com, the other Lowes,
+  Ecommerce and the rare ones - are left out entirely.
+
 ## Colors
 
 - **Red date** - the row is late.
@@ -300,8 +316,8 @@ columns it leaves out matter.
 
 ## The keys
 
-- **Alt+S**, **Alt+I**, **Alt+B**, **Alt+H** - show the search, inspect,
-  build or help tab. The tab's first letter, and they work even while you
+- **Alt+S**, **Alt+I**, **Alt+B**, **Alt+K**, **Alt+H** - show the search,
+  inspect, build, kpi or help tab. The tab's first letter, and they work even while you
   are typing in a bar.
 - **b** - put the picked rows on the build list.
 - **c** - copy the picked rows' order numbers, comma separated, biggest first.

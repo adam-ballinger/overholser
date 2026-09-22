@@ -444,3 +444,36 @@ const rowMatches = (row, filters) => linesMatch(row.lines, filters)
   && (!filters['144'] || row.has144)
   && (!filters['no-144'] || !row.has144)
   && (!filters['flr-mtl'] || row.flrMtl);
+
+// ---- The KPI matrix ----
+
+// Cases by who owns the line: the shift that owns its sales channel across, the person who works its line
+// status down. A line on a channel neither shift owns (HOME DEPOT.COM-OK, LOWES-BR, LOWES-NO, ECOMMERCE-OK
+// and the rare ones) is left out, so the totals always add up across and down.
+const KPI_SHIFTS = [
+  ['1st shift (Brad)', ['HOME DEPOT-OK', 'LOWES-OK', 'ACE HDW-OK', 'ORGILL-OK', 'DISTRIBUTORS&FIELD SALES-OK']],
+  ['2nd shift (Nikki)', ['MENARDS-OK']],
+];
+const KPI_STATUSES = [
+  ['holds (Adam)', ['Entered', 'Booked', 'Awaiting']],
+  ['ready (Nicole)', ['Ready']],
+  ['picked/released (Brad, Nikki)', ['Picked', 'Released']],
+];
+
+const KPI_COLUMNS = [...KPI_SHIFTS.map(([name]) => name), 'total'];
+
+// The matrix as rows of [label, 1st shift, 2nd shift, total], a total row last.
+function kpiMatrix(rows) {
+  const cases = KPI_STATUSES.map(() => KPI_SHIFTS.map(() => 0));
+  for (const l of rows.flatMap(r => r.lines)) {
+    const shift = KPI_SHIFTS.findIndex(([, channels]) => channels.includes(l.salesChannel));
+    if (shift < 0) continue;
+    const status = KPI_STATUSES.findIndex(([, statuses]) => statuses.includes(l.lineStatus));
+    cases[status < 0 ? 0 : status][shift] += l.cases;  // a status we don't know is a hold, the way orderStatus has it
+  }
+  const across = ns => [...ns, ns.reduce((a, b) => a + b, 0)];
+  return [
+    ...KPI_STATUSES.map(([label], i) => [label, ...across(cases[i])]),
+    ['total', ...across(KPI_SHIFTS.map((_, s) => cases.reduce((t, ns) => t + ns[s], 0)))],
+  ];
+}
