@@ -197,6 +197,11 @@ into a symbol.
   makes orders right: an order with a ready line and a picked line is in two
   rows and is still one order, so its totals come out smaller than its cells -
   the only measure that needs the warning, and it says so under the heading.
+  A tab clicked with the mouse lets its button's focus go again (`e.detail`
+  tells a mouse click from a keyboard one, which keeps it so Tab can carry on):
+  the button kept the focus otherwise, and the first key pressed after the click
+  turned it into the browser's ring - a box drawn round the tab name by pressing
+  t, which nothing on the page explained.
   Adam asked for **ctrl+t**; Chrome keeps that one for its own new tab and never
   lets the page see it, so the binding is there and bare `t` is the key that
   works. `t` is handled up with Esc and the alt keys, before the guard that

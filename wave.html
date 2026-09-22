@@ -119,7 +119,7 @@
   #kpi-tab .total td { padding-top: 5px; border-top: 1px solid var(--border) }
   #kpi-tab .num { cursor: pointer }
   #kpi-tab h2 { margin: 0 0 2px; font-size: 1.3em }
-  #kpi-tab h2 .muted { font-size: 13px; font-weight: normal; color: #94918a }
+  #kpi-tab h2 .muted { display: block; font-size: 13px; font-weight: normal; color: #94918a }
   #kpiLate { margin-bottom: 12px; color: #55534d }
   #kpiNote { margin-top: 18px; color: #55534d }
   #kpiCopied { margin-top: 10px; color: #94918a }
@@ -258,7 +258,16 @@ function showTab(tab) {
   for (const section of document.querySelectorAll('main > section')) section.hidden = section.id !== tab;
   unpick();
 }
-tabs.addEventListener('click', e => e.target.dataset.tab && showTab(e.target.dataset.tab));
+tabs.addEventListener('click', e => {
+  if (!e.target.dataset.tab) return;
+  showTab(e.target.dataset.tab);
+  // A mouse click leaves the button focused, and the first key pressed after it turns that focus into the
+  // browser's ring around the tab name - a box appearing round the tab for no reason the page can explain.
+  // The keys belong to the document here, not to the button, so nothing is lost by letting it go. A click
+  // from the keyboard (detail 0, Enter or Space on a tabbed-to button) keeps its focus: Tab is how it got
+  // there and Tab has to be able to carry on from it.
+  if (e.detail) e.target.blur();
+});
 
 // ---- The warning across the top ----
 
@@ -1049,7 +1058,7 @@ const COPY_A_NUMBER = 'click a number to copy it';
 // which is showing, since the numbers alone don't: 1,240 cases and 1,240 orders look the same.
 let kpiMeasure = 0;
 
-const LATE_IS = 'late is 1-3, 4-8 and 9+ days late, counted line by line';
+const LATE_IS = 'late is 1-3, 4-8 or 9+ days, line by line';
 
 function drawKpi() {
   const [name, , write, warn] = KPI_MEASURES[kpiMeasure];

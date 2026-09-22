@@ -483,7 +483,7 @@ const KPI_MEASURES = [
   ['Cases', ls => total(ls, 'cases'), n => n.toLocaleString()],
   ['Dollars', ls => total(ls, 'dollars'), wholeDollars],
   ['Orders', ls => new Set(ls.map(l => l.orderNumber)).size, n => n.toLocaleString(),
-    'an order on two rows is one order in the totals, so these totals are less than their cells added up'],
+    'an order on two rows counts once, so totals are under their cells'],
 ];
 
 // The matrix as rows of [label, 1st shift, 2nd shift, total], a total row last, in the measure given (an entry
