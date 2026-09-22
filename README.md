@@ -162,9 +162,9 @@ into a symbol.
   ORGILL-OK, DISTRIBUTORS&FIELD SALES-OK; 2nd shift: MENARDS-OK), down by who
   works its line status (holds and ready are Nicole's, holds being Entered,
   Booked or Awaiting; picked/released is Brad's and Nikki's), with a total each
-  way. The columns are the shifts alone - `kpiNote` under the table writes out
-  the channels each one owns, off `KPI_SHIFTS` itself, so the table and the
-  note can't drift apart; only the rows carry a name. Cases
+  way. The columns are the shifts alone - `kpiNote` under the table writes each
+  one out in full, whose it is and the channels it owns, off `KPI_SHIFTS`
+  itself (name, who, channels), so the table and the note can't drift apart. Cases
   by line, not by order or row, so it flattens `data`'s rows back to their
   lines - lines group by trip, so each line is on exactly one row and none is
   counted twice. A channel neither shift owns (HOME DEPOT.COM-OK, LOWES-BR,
@@ -286,6 +286,14 @@ changing `wave.html`, `wave.js`, `HELP.md` or the version - and push the new
 `index.html`, or the site still shows the old one. The help and version are
 only in `index.html`, since `wave.html` can't read files from disk; it says
 "dev, not bundled" instead.
+
+**A warning across the top** (`showWarning`, above the tabs so it is on every
+one of them) when the numbers can't be trusted: no export open at all, or one
+`STALE_HOURS` (2) or more behind. It goes by `fileTime`, the export's own date
+and time rather than when it was picked, since one opened at 9 may have been
+run at 6; `setInterval` looks again every minute, because the page ages while
+nobody touches it. It only says so - the report
+stays up, and whether old numbers matter is the reader's call.
 
 ## Filters
 

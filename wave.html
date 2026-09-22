@@ -31,6 +31,8 @@
                  background: none; color: #94918a }
   #tabs button:hover { color: #1b1b19 }
   #tabs button.on { color: #1b1b19; border-bottom-color: #1b1b19 }
+  /* The warning across the top: the text carries the color, like every other warning on the page. */
+  #warning { margin-bottom: 10px }
 
   /* Search tab */
   .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px }
@@ -175,6 +177,8 @@
      <span class="frame">└──●─●───────────────●─●──┘ └●──●┘</span></pre>
 <div class="brand"><b>wave app</b><br>open orders, sorted<br><span id="version"></span></div>
 </header>
+<!-- Nothing open, or what is open has aged: above the tabs, so every tab has it. -->
+<div id="warning" hidden></div>
 <!-- The tabs read as commands, like the filter bar: one word each, with the longer wording in the tooltip. -->
 <nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered (alt+s)">search</button><button
   data-tab="inspect-tab" title="One trip, or one order, in full (alt+i)">inspect</button><button
@@ -250,6 +254,26 @@ function showTab(tab) {
   unpick();
 }
 tabs.addEventListener('click', e => e.target.dataset.tab && showTab(e.target.dataset.tab));
+
+// ---- The warning across the top ----
+
+// An export is a snapshot, and a page left open all day goes on showing it: what it calls open may have
+// shipped hours ago. So the top of every tab says when there is nothing open at all, and when what is open is
+// STALE_HOURS or more behind. It goes by the export's own date and time, the one beside open csv, not by when
+// it was picked, and it is looked at again every minute, since the page ages while nobody touches it.
+const STALE_HOURS = 2;
+let fileTime = null;   // the open export's own date and time, or null when there is none
+
+function showWarning() {
+  const hours = fileTime && Math.floor((Date.now() - fileTime) / 3600e3);
+  const text = !fileTime ? 'No export open. Pick one with open csv (ctrl+o) on the search tab.'
+    : hours >= STALE_HOURS ? `This export is ${count(hours, 'hour')} old. Open a newer one with open csv (ctrl+o).`
+    : '';
+  warning.innerHTML = text ? `<span class="warning">${text}</span>` : '';
+  warning.hidden = !text;
+}
+showWarning();
+setInterval(showWarning, 60e3);
 
 // ---- Search tab ----
 
@@ -471,13 +495,18 @@ csv.addEventListener('change', async () => {
     showProgress(0.45, 'sorting orders');
     await paint();
     data = loadOrders(text);
+    fileTime = file.lastModified;
     showProgress(0.85, 'drawing');
     await paint();
-  } catch (e) { data = null; progress.textContent = ''; message.textContent = e.message; return; }
+  } catch (e) {
+    data = null; fileTime = null; showWarning();
+    progress.textContent = ''; message.textContent = e.message; return;
+  }
   render();
   showTrip();
   drawBuild();
   drawKpi();
+  showWarning();
   showProgress(1, `done in ${((performance.now() - start) / 1000).toFixed(1)}s`);
   progressTimer = setTimeout(() => progress.textContent = '', 4000);
   flags.focus();
@@ -1014,8 +1043,8 @@ function drawKpi() {
       + '</tr>').join('');
   // Which sales channels each shift owns, straight off KPI_SHIFTS, so the table can never say one thing and
   // the note another. Channels on neither line aren't in the table at all.
-  kpiNote.innerHTML = KPI_SHIFTS.map(([name, channels]) =>
-    `<div>${name}: ${channels.join(', ')}</div>`).join('');
+  kpiNote.innerHTML = KPI_SHIFTS.map(([name, who, channels]) =>
+    `<div>${name} (${who}): ${channels.join(', ')}</div>`).join('');
   kpiCopied.textContent = COPY_A_NUMBER;
 }
 drawKpi();

@@ -21,6 +21,21 @@ or missing, tell whoever sent you the link.
   press its first letter: **Alt+S** search, **Alt+I** inspect, **Alt+B**
   build, **Alt+K** kpi, **Alt+H** help.
 
+## The warning across the top
+
+A line above the tabs, white on orange, when the numbers can't be trusted:
+
+- **No export open** - nothing has been opened yet. Press **Ctrl+O** on the
+  search tab.
+- **This export is 3 hours old** - what you are looking at was made three
+  hours ago, and some of those orders have probably shipped since. Open a
+  newer one. It counts from the export's own date and time, the one beside
+  **open csv**, not from when you opened it, so a page left running all day
+  tells you when it has gone stale.
+
+Nothing hides the report while it's up: the warning says the numbers are old,
+you decide whether that matters.
+
 Your export stays on your computer. Nothing is uploaded or saved anywhere:
 close or reload the page and it's gone.
 
@@ -230,8 +245,9 @@ A small table of cases: who owns the orders across the top, who works them
 down the side.
 
 - **1st shift** is Home Depot, Lowes, Ace, Orgill and Distributors & Field
-  Sales. **2nd shift** is Menards. The sales channels each one owns are
-  written under the table, so you never have to remember them.
+  Sales. **2nd shift** is Menards. Under the table each shift is written out
+  in full - whose it is, and the sales channels it owns - so you never have to
+  remember them.
 - **holds (Nicole)**, **ready (Nicole)** and **picked/released (Brad, Nikki)**
   are the line's status.
 - Each cell is the cases on those lines, counted line by line, not order by

@@ -451,8 +451,8 @@ const rowMatches = (row, filters) => linesMatch(row.lines, filters)
 // status down. A line on a channel neither shift owns (HOME DEPOT.COM-OK, LOWES-BR, LOWES-NO, ECOMMERCE-OK
 // and the rare ones) is left out, so the totals always add up across and down.
 const KPI_SHIFTS = [
-  ['1st shift', ['HOME DEPOT-OK', 'LOWES-OK', 'ACE HDW-OK', 'ORGILL-OK', 'DISTRIBUTORS&FIELD SALES-OK']],
-  ['2nd shift', ['MENARDS-OK']],
+  ['1st shift', 'Brad', ['HOME DEPOT-OK', 'LOWES-OK', 'ACE HDW-OK', 'ORGILL-OK', 'DISTRIBUTORS&FIELD SALES-OK']],
+  ['2nd shift', 'Nikki', ['MENARDS-OK']],
 ];
 const KPI_STATUSES = [
   ['holds (Nicole)', ['Entered', 'Booked', 'Awaiting']],
@@ -466,7 +466,7 @@ const KPI_COLUMNS = [...KPI_SHIFTS.map(([name]) => name), 'total'];
 function kpiMatrix(rows) {
   const cases = KPI_STATUSES.map(() => KPI_SHIFTS.map(() => 0));
   for (const l of rows.flatMap(r => r.lines)) {
-    const shift = KPI_SHIFTS.findIndex(([, channels]) => channels.includes(l.salesChannel));
+    const shift = KPI_SHIFTS.findIndex(([, , channels]) => channels.includes(l.salesChannel));
     if (shift < 0) continue;
     const status = KPI_STATUSES.findIndex(([, statuses]) => statuses.includes(l.lineStatus));
     cases[status < 0 ? 0 : status][shift] += l.cases;  // a status we don't know is a hold, the way orderStatus has it
