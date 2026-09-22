@@ -241,9 +241,15 @@ reloading the page empties it, like everything else here.
 
 ## The kpi tab
 
-A small table of the cases that are **late**: who owns them across the top,
-who works them down the side. Nothing that is due today or later is in it - the
-tab is what is already behind.
+A small table of what is **late**: who owns it across the top, who works it
+down the side. Nothing due today or later is in it - the tab is what is already
+behind.
+
+The heading says what the numbers are: **Delivery: Cases Late**. Press **t** to
+step to dollars, again for orders, again back to cases - the heading changes
+with them, since 1,240 cases and 1,240 orders look exactly the same. (Ctrl+T
+is meant to do it too, but Chrome keeps that key for its own new tab and the
+page never sees it. Use **t**.)
 
 - **Late** is the report's own late, the same as the `--late` filter: 1-3, 4-8
   or 9+ days late. It goes line by line, so a trip with one late line puts
@@ -257,8 +263,11 @@ tab is what is already behind.
   (Nicole)** are both Ready, split by whether the stock is there for them -
   covered has it, short doesn't (see **Allocation**). **picked/released
   (Brad, Nikki)** is in the warehouse's hands.
-- Each cell is the cases on those late lines, counted line by line, not order
-  by order. The totals add up both ways.
+- Each cell is the late lines in it, counted line by line, not order by
+  order. On cases and dollars the totals add up both ways. On **orders** they
+  don't: an order with a ready line and a picked line is in two rows and is
+  still one order, so a total is smaller than its cells added up. The line
+  under the heading says so while orders is showing.
 - **Click any number to copy it.** It goes on the clipboard as plain text,
   ready to paste into a message or a spreadsheet with Ctrl+V, and the line
   under the table says what went.
@@ -344,7 +353,8 @@ columns it leaves out matter.
 ## The keys
 
 - **Alt+S**, **Alt+I**, **Alt+B**, **Alt+K**, **Alt+H** - show the search,
-  inspect, build, kpi or help tab. The tab's first letter, and they work even while you
+  inspect, build, kpi or help tab.
+- **t** - on kpi, step the numbers between cases, dollars and orders. The tab's first letter, and they work even while you
   are typing in a bar.
 - **b** - put the picked rows on the build list.
 - **c** - copy the picked rows' order numbers, comma separated, biggest first.

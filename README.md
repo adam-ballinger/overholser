@@ -181,7 +181,20 @@ into a symbol.
   above the table says so, since a number with nothing beside it reads as
   everything. Late goes line by line, like the 144" tag: a trip with one late
   line brings that line and not the rest of it. A new export redraws it
-  (`drawKpi`). **Clicking a number copies it** as the plain text it shows,
+  (`drawKpi`). **`#kpiHeading` says what the numbers are** - "Delivery: Cases
+  Late" - and **t steps the measure** (`KPI_MEASURES`, `nextMeasure`): cases,
+  dollars, orders, round again. Each measure is [name, what a run of lines comes
+  to, how it is written, a warning to print under it], so the heading, the cells
+  and the caveat all come off the one entry. `kpiMatrix` keeps each cell's lines
+  and runs the measure over them rather than adding the cells up, which is what
+  makes orders right: an order with a ready line and a picked line is in two
+  rows and is still one order, so its totals come out smaller than its cells -
+  the only measure that needs the warning, and it says so under the heading.
+  Adam asked for **ctrl+t**; Chrome keeps that one for its own new tab and never
+  lets the page see it, so the binding is there and bare `t` is the key that
+  works. `t` is handled up with Esc and the alt keys, before the guard that
+  hands typing to a focused bar, since alt+k leaves the typing in the filter bar
+  and that bar is on another tab. **Clicking a number copies it** as the plain text it shows,
   commas and all, since Excel reads a single pasted "1,998" as the number:
   reading one is usually the first half of putting it somewhere else. The line
   under the note says what went for a few seconds, the way the copy buttons do,

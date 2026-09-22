@@ -470,19 +470,32 @@ const KPI_STATUSES = [
 
 const KPI_COLUMNS = [...KPI_SHIFTS.map(([name]) => name), 'total'];
 
-// The matrix as rows of [label, 1st shift, 2nd shift, total], a total row last.
-function kpiMatrix(rows) {
-  const cases = KPI_STATUSES.map(() => KPI_SHIFTS.map(() => 0));
+// What the cells count, in the order the tab steps through them: [name, what a run of lines comes to, how it
+// is written, and a warning to print under it]. The name is in the heading, so it is capitalised the way a
+// heading is. Only Orders has the warning: it is the one measure whose totals are smaller than its cells
+// added up, since an order can be on two rows and is still one order.
+const KPI_MEASURES = [
+  ['Cases', ls => total(ls, 'cases'), n => n.toLocaleString()],
+  ['Dollars', ls => total(ls, 'dollars'), money],
+  ['Orders', ls => new Set(ls.map(l => l.orderNumber)).size, n => n.toLocaleString(),
+    'an order on two rows is one order in the totals, so these totals are less than their cells added up'],
+];
+
+// The matrix as rows of [label, 1st shift, 2nd shift, total], a total row last, in the measure given (an entry
+// of KPI_MEASURES). Each cell keeps its lines and the measure is run over them, rather than the cells being
+// added up: an order with a ready line and a picked line is two cells and still one order.
+function kpiMatrix(rows, [, measure]) {
+  const cells = KPI_STATUSES.map(() => KPI_SHIFTS.map(() => []));
   for (const l of rows.flatMap(r => r.lines)) {
     if (!late(l)) continue;
     const shift = KPI_SHIFTS.findIndex(([, , channels]) => channels.includes(l.salesChannel));
     if (shift < 0) continue;
     const status = KPI_STATUSES.findIndex(([, counts]) => counts(l));
-    cases[status < 0 ? 0 : status][shift] += l.cases;  // a line no row takes is a hold, the first row
+    cells[status < 0 ? 0 : status][shift].push(l);  // a line no row takes is a hold, the first row
   }
-  const across = ns => [...ns, ns.reduce((a, b) => a + b, 0)];
+  const across = shifts => [...shifts.map(measure), measure(shifts.flat())];
   return [
-    ...KPI_STATUSES.map(([label], i) => [label, ...across(cases[i])]),
-    ['total', ...across(KPI_SHIFTS.map((_, s) => cases.reduce((t, ns) => t + ns[s], 0)))],
+    ...KPI_STATUSES.map(([label], i) => [label, ...across(cells[i])]),
+    ['total', ...across(KPI_SHIFTS.map((_, s) => cells.flatMap(row => row[s])))],
   ];
 }
