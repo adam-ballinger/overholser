@@ -68,17 +68,19 @@ into a symbol.
   nothing in an email. The + carries its own `data-add` and the click listener
   takes it before the row's own click, so pressing it doesn't also pick the row
   it sits in.
-  **copy orders (c)**, beside bld all, puts the picked rows' order numbers on
-  the clipboard, one per line: pick the rows, press c. A picked row carries the
-  entry it adds and not the row itself, so `pickedOrders` looks each one up again
-  with `buildRow`, the way the build list draws - a trip's row brings all of its
-  orders, an order's row brings that one, and an order on two picked rows is
-  named once. The button counts orders rather than rows, since one row can hold
-  thirty, and says what went for a few seconds after. One per line is a
-  spreadsheet column, and a box that wants a list takes it too. `copyPicked` is
-  shaped like `addPicked` and `dropPicked`: bare c belongs to the picked rows
-  wherever they are, so it copies from inspect's Orders rows too, and ctrl+c
-  stays the browser's own on search, for taking a number out of a cell.
+  **copy order numbers (c)**, beside bld all, puts the picked rows' order
+  numbers on the clipboard, one per line: pick the rows, press c. A picked row
+  carries the entry it adds and not the row itself, so `pickedOrders` looks each
+  one up again with `buildRow`, the way the build list draws - a trip's row
+  brings all of its orders, an order's row brings that one, and an order on two
+  picked rows is named once. The button counts the numbers rather than the rows,
+  since one row can hold thirty, and names them the way it copies them ("copy 12
+  order numbers", "copy 1 order number"); it says what went for a few seconds
+  after. One per line is a spreadsheet column, and a box that wants a list takes
+  it too. `copyPicked` is shaped like `addPicked` and `dropPicked`: bare c belongs
+  to the picked rows wherever they are, so it copies from inspect's Orders rows
+  too, and ctrl+c stays the browser's own on search, for taking a number out of
+  a cell.
   `addEntry` is one entry without drawing and `addToBuild` the one-off that
   draws, so a whole report going on redraws the list once rather than a
   thousand times.

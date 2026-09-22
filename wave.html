@@ -188,7 +188,7 @@
   <div class="tools table-tools">
     <button id="bldSelected">bld selection (b)</button>
     <button id="bldAll">bld all (ctrl+b)</button>
-    <button id="copyOrders">copy orders (c)</button>
+    <button id="copyOrders">copy order numbers (c)</button>
     <button id="save">save table (ctrl+s)</button>
   </div>
   <table id="report"></table>
@@ -809,8 +809,8 @@ function countSelected() {
   const add = pickedRows('add').length, drop = pickedRows('drop').length, orders = pickedOrders().length;
   bldSelected.textContent = add ? `bld ${add} (b)` : 'bld selection (b)';
   dropSelected.textContent = drop ? `drop ${drop} (d)` : 'drop selection (d)';
-  // This one counts orders rather than rows, since orders are what it copies: one row can hold thirty of them.
-  copyOrders.textContent = orders ? `copy ${count(orders, 'order')} (c)` : 'copy orders (c)';
+  // It counts the numbers rather than the rows, since they are what it copies: one row can hold thirty.
+  copyOrders.textContent = orders ? `copy ${count(orders, 'order number')} (c)` : 'copy order numbers (c)';
   showClear();
 }
 
@@ -831,7 +831,7 @@ function copyPicked() {
   if (!orders.length) return false;
   if (!toClipboard(orders.join('\n'))) { message.textContent = 'Could not copy the order numbers'; return true; }
   message.textContent = '';
-  copyOrders.textContent = `copied ${count(orders.length, 'order')}: paste with ctrl+v`;
+  copyOrders.textContent = `copied ${count(orders.length, 'order number')}: paste with ctrl+v`;
   setTimeout(countSelected, 4000);
   return true;
 }
