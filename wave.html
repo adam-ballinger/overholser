@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>wave</title>
+<title>wave app</title>
 <style>
   /* Named once here so emailTable's inlineStyle (further down) can read the same values instead of
      repeating the hex: a saved or emailed table can never show different colors than the page. */
@@ -110,10 +110,14 @@
   /* Six columns and every one of them is in the paste, so the narrow-window rules above leave them alone. */
   #build-tab th, #build-tab td { display: table-cell }
 
-  /* KPI tab: four short columns, so the table is as wide as it needs and no wider. */
+  /* KPI tab: four short columns, so the table is as wide as it needs and no wider. The channels each
+     shift owns, and what a click copies, sit under it in the quiet grey the page uses for its asides. */
   #kpi-tab table { width: auto; table-layout: auto }
   #kpi-tab th, #kpi-tab td { padding-right: 28px }
   #kpi-tab .total td { padding-top: 5px; border-top: 1px solid var(--border) }
+  #kpi-tab .num { cursor: pointer }
+  #kpiNote { margin-top: 18px; color: #55534d }
+  #kpiCopied { margin-top: 10px; color: #94918a }
 
   /* Putting rows on the build list gives a little back: the truck rolls, its lamp blinks and the count floats
      up over the tab, in a color picked fresh each time (--pop). Now and then it comes up big (.crit), and the
@@ -169,7 +173,7 @@
 <span class="speed"> ─── </span><span class="frame">│</span> █ ▀ █ █▀▀▀█ ▀▄ ▄▀ █▀▀▀  <span class="frame">│═╡ <span class="lamp">▪</span> └┐</span>
 <span class="speed">   ─ </span><span class="frame">│</span> ▀▀ ▀▀ ▀   ▀   ▀   ▀▀▀▀▀ <span class="frame">│ │    │</span>
      <span class="frame">└──●─●───────────────●─●──┘ └●──●┘</span></pre>
-<div class="brand"><b>wave</b><br>open orders, sorted<br><span id="version"></span></div>
+<div class="brand"><b>wave app</b><br>open orders, sorted<br><span id="version"></span></div>
 </header>
 <!-- The tabs read as commands, like the filter bar: one word each, with the longer wording in the tooltip. -->
 <nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered (alt+s)">search</button><button
@@ -224,6 +228,8 @@
 <section id="kpi-tab" hidden>
   <div id="kpiMessage" class="message"></div>
   <table id="kpiTable"></table>
+  <div id="kpiNote"></div>
+  <div id="kpiCopied"></div>
 </section>
 <section id="help-tab" class="help" hidden></section>
 </main>
@@ -994,16 +1000,37 @@ copyBuild.addEventListener('click', () => {
 
 // The whole export as a matrix of cases (kpiMatrix): the shift that owns the line's sales channel across, the
 // person who works its line status down. The filter bar isn't in it - it is the day's picture, not a report.
+// Clicking a number copies it, since the reason to read one is usually to put it somewhere else.
+const COPY_A_NUMBER = 'click a number to copy it';
+
 function drawKpi() {
   kpiMessage.textContent = data ? '' : 'Open an export in the search tab first';
-  if (!data) { kpiTable.innerHTML = ''; return; }
+  if (!data) { kpiTable.innerHTML = kpiNote.innerHTML = kpiCopied.textContent = ''; return; }
   const matrix = kpiMatrix(data);
   kpiTable.innerHTML = `<tr><th></th>${KPI_COLUMNS.map(h => `<th class="right">${h}</th>`).join('')}</tr>`
     + matrix.map(([label, ...cases], i) =>
       `<tr${i === matrix.length - 1 ? ' class="total"' : ''}><td>${label}</td>`
-      + cases.map(n => `<td class="right">${n.toLocaleString()}</td>`).join('') + '</tr>').join('');
+      + cases.map(n => `<td class="right num" title="${COPY_A_NUMBER}">${n.toLocaleString()}</td>`).join('')
+      + '</tr>').join('');
+  // Which sales channels each shift owns, straight off KPI_SHIFTS, so the table can never say one thing and
+  // the note another. Channels on neither line aren't in the table at all.
+  kpiNote.innerHTML = KPI_SHIFTS.map(([name, channels]) =>
+    `<div>${name}: ${channels.join(', ')}</div>`).join('');
+  kpiCopied.textContent = COPY_A_NUMBER;
 }
 drawKpi();
+
+// A number copies itself, as the plain text it shows. It says what went for a few seconds, the way the copy
+// buttons do, in the line that otherwise says a click would copy.
+let kpiCopiedTimer;
+kpiTable.addEventListener('click', e => {
+  const cell = e.target.closest('.num');
+  if (!cell) return;
+  kpiCopied.textContent = toClipboard(cell.textContent)
+    ? `copied ${cell.textContent}: paste with ctrl+v` : 'could not copy';
+  clearTimeout(kpiCopiedTimer);
+  kpiCopiedTimer = setTimeout(() => kpiCopied.textContent = COPY_A_NUMBER, 4000);
+});
 
 // ---- Help tab ----
 

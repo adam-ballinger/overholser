@@ -451,11 +451,11 @@ const rowMatches = (row, filters) => linesMatch(row.lines, filters)
 // status down. A line on a channel neither shift owns (HOME DEPOT.COM-OK, LOWES-BR, LOWES-NO, ECOMMERCE-OK
 // and the rare ones) is left out, so the totals always add up across and down.
 const KPI_SHIFTS = [
-  ['1st shift (Brad)', ['HOME DEPOT-OK', 'LOWES-OK', 'ACE HDW-OK', 'ORGILL-OK', 'DISTRIBUTORS&FIELD SALES-OK']],
-  ['2nd shift (Nikki)', ['MENARDS-OK']],
+  ['1st shift', ['HOME DEPOT-OK', 'LOWES-OK', 'ACE HDW-OK', 'ORGILL-OK', 'DISTRIBUTORS&FIELD SALES-OK']],
+  ['2nd shift', ['MENARDS-OK']],
 ];
 const KPI_STATUSES = [
-  ['holds (Adam)', ['Entered', 'Booked', 'Awaiting']],
+  ['holds (Nicole)', ['Entered', 'Booked', 'Awaiting']],
   ['ready (Nicole)', ['Ready']],
   ['picked/released (Brad, Nikki)', ['Picked', 'Released']],
 ];

@@ -1,4 +1,4 @@
-# wave
+# wave app
 
 Minimal text-style tools for a distribution service office, in a browser page.
 It will become a web app server later; for now it's one page, opened from a
@@ -158,10 +158,13 @@ into a symbol.
   and makes "54055633,54055634" one huge number (the comma is its thousands
   separator) - the space keeps the cell text.
 - **kpi** is one small table, `kpiMatrix`: cases across by the shift that owns
-  the line's sales channel (1st shift Brad: HOME DEPOT-OK, LOWES-OK, ACE
-  HDW-OK, ORGILL-OK, DISTRIBUTORS&FIELD SALES-OK; 2nd shift Nikki: MENARDS-OK),
-  down by who works its line status (holds Adam: Entered, Booked, Awaiting;
-  ready Nicole; picked/released Brad and Nikki), with a total each way. Cases
+  the line's sales channel (1st shift: HOME DEPOT-OK, LOWES-OK, ACE HDW-OK,
+  ORGILL-OK, DISTRIBUTORS&FIELD SALES-OK; 2nd shift: MENARDS-OK), down by who
+  works its line status (holds and ready are Nicole's, holds being Entered,
+  Booked or Awaiting; picked/released is Brad's and Nikki's), with a total each
+  way. The columns are the shifts alone - `kpiNote` under the table writes out
+  the channels each one owns, off `KPI_SHIFTS` itself, so the table and the
+  note can't drift apart; only the rows carry a name. Cases
   by line, not by order or row, so it flattens `data`'s rows back to their
   lines - lines group by trip, so each line is on exactly one row and none is
   counted twice. A channel neither shift owns (HOME DEPOT.COM-OK, LOWES-BR,
@@ -169,7 +172,13 @@ into a symbol.
   totals add up across and down; Adam chose that over a total that doesn't
   match its columns. It covers the whole export rather than the filtered rows:
   it is the day's picture, not a report. A new export redraws it
-  (`drawKpi`). Nothing to save or copy yet - ask if it's wanted.
+  (`drawKpi`). **Clicking a number copies it** as the plain text it shows,
+  commas and all, since Excel reads a single pasted "1,998" as the number:
+  reading one is usually the first half of putting it somewhere else. The line
+  under the note says what went for a few seconds, the way the copy buttons do,
+  and says a click would copy the rest of the time. The cells' class is `num`
+  and not `cases`, which is the report's Cases column that narrow windows hide.
+  No save button - ask if it's wanted.
 - **help** is `HELP.md`: plain-language instructions for the people using the
   page, not this file. Keep it current when what the page does changes.
 
@@ -255,8 +264,11 @@ committed and this project has no build step of its own to run there. So a
 change is live once the rebuilt `index.html` is pushed, and everyone is always
 on the newest one. The page header shows the version, so a tester's feedback
 still says which build they had. The repo is still named `overholser`, which
-is the only reason the address says so; the app is `wave` everywhere else.
-Renaming the repo would change the address.
+is the only reason the address says so. The app calls itself **wave app** -
+the browser tab and the header beside the truck - and `wave` on its own is the
+name in the code and in the saved files (`2026-09-16 wave --late --thd.html`),
+which are named after what they hold rather than after the app. Renaming the
+repo would change the address.
 
 The page is all there is to deploy: no server, no packages, and the export is
 read in the browser, so Pages never sees it. Pages needs the repo public,

@@ -1,6 +1,6 @@
-# wave help
+# wave app help
 
-wave shows the open orders export as a report you can filter, check and copy
+wave app shows the open orders export as a report you can filter, check and copy
 into an email. This is an early test version: if something is confusing, wrong
 or missing, tell whoever sent you the link.
 
@@ -229,12 +229,16 @@ reloading the page empties it, like everything else here.
 A small table of cases: who owns the orders across the top, who works them
 down the side.
 
-- **1st shift (Brad)** is Home Depot, Lowes, Ace, Orgill and Distributors &
-  Field Sales. **2nd shift (Nikki)** is Menards.
-- **holds (Adam)**, **ready (Nicole)** and **picked/released (Brad, Nikki)**
+- **1st shift** is Home Depot, Lowes, Ace, Orgill and Distributors & Field
+  Sales. **2nd shift** is Menards. The sales channels each one owns are
+  written under the table, so you never have to remember them.
+- **holds (Nicole)**, **ready (Nicole)** and **picked/released (Brad, Nikki)**
   are the line's status.
 - Each cell is the cases on those lines, counted line by line, not order by
   order. The totals add up both ways.
+- **Click any number to copy it.** It goes on the clipboard as plain text,
+  ready to paste into a message or a spreadsheet with Ctrl+V, and the line
+  under the table says what went.
 - It covers the whole export, not the rows your filters picked, and it
   redraws when you open a newer one.
 - Sales channels that are neither shift's - Home Depot.com, the other Lowes,
