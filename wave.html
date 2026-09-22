@@ -814,22 +814,27 @@ function countSelected() {
   showClear();
 }
 
-// The order numbers of the picked rows, each named once, in the order the rows are shown: a trip's row brings
-// all of its orders, an order's row brings that one. Looked up the way the build list looks its entries up,
-// since a row carries the entry it adds and not the row itself.
+// The order numbers of the picked rows, each named once and most cases first, since the biggest orders are
+// what a wave is built around: a trip's row brings all of its orders, an order's row brings that one, and an
+// order picked on two trips adds up what each of them holds. Looked up the way the build list looks its
+// entries up, since a row carries the entry it adds and not the row itself.
 function pickedOrders() {
-  const rows = pickedRows('add').map(tr => {
+  const cases = new Map();
+  for (const tr of pickedRows('add')) {
     const [trip, order] = tr.dataset.add.split('|');
-    return buildRow({ trip, order }, data ?? []);
-  });
-  return [...new Set(rows.filter(Boolean).flatMap(r => r.orderNumbers))];
+    for (const o of buildRow({ trip, order }, data ?? [])?.orders ?? []) {
+      cases.set(o.orderNumber, (cases.get(o.orderNumber) ?? 0) + o.cases);
+    }
+  }
+  return [...cases].sort((a, b) => b[1] - a[1]).map(([number]) => number);
 }
-// One order number per line: a spreadsheet takes that as a column, and a box that wants a list takes it too.
+// A comma list, the way the build list writes its order numbers: a space after the comma, since Excel reads a
+// pasted cell as if it were typed and "54055633,54055634" is one huge number to it.
 // The button says what went, the way copy build does, and countSelected puts the count back a few seconds on.
 function copyPicked() {
   const orders = pickedOrders();
   if (!orders.length) return false;
-  if (!toClipboard(orders.join('\n'))) { message.textContent = 'Could not copy the order numbers'; return true; }
+  if (!toClipboard(orders.join(', '))) { message.textContent = 'Could not copy the order numbers'; return true; }
   message.textContent = '';
   copyOrders.textContent = `copied ${count(orders.length, 'order number')}: paste with ctrl+v`;
   setTimeout(countSelected, 4000);
