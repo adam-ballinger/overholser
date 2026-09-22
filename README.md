@@ -68,6 +68,17 @@ into a symbol.
   nothing in an email. The + carries its own `data-add` and the click listener
   takes it before the row's own click, so pressing it doesn't also pick the row
   it sits in.
+  **copy orders (c)**, beside bld all, puts the picked rows' order numbers on
+  the clipboard, one per line: pick the rows, press c. A picked row carries the
+  entry it adds and not the row itself, so `pickedOrders` looks each one up again
+  with `buildRow`, the way the build list draws - a trip's row brings all of its
+  orders, an order's row brings that one, and an order on two picked rows is
+  named once. The button counts orders rather than rows, since one row can hold
+  thirty, and says what went for a few seconds after. One per line is a
+  spreadsheet column, and a box that wants a list takes it too. `copyPicked` is
+  shaped like `addPicked` and `dropPicked`: bare c belongs to the picked rows
+  wherever they are, so it copies from inspect's Orders rows too, and ctrl+c
+  stays the browser's own on search, for taking a number out of a cell.
   `addEntry` is one entry without drawing and `addToBuild` the one-off that
   draws, so a whole report going on redraws the list once rather than a
   thousand times.
@@ -183,7 +194,9 @@ The search tab's own copy table button put the report on the clipboard as HTML
 and as tab-separated text. Adam asked for it out; it is in the history, and
 `toClipboard` lost the HTML half of its job with it.
 
-**The keys:** the ctrl ones belong to the tab showing, and each is the
+**The keys:** the bare letters are the picked rows, wherever they are - `b` puts
+them on the build list, `d` takes them off, `c` copies their order numbers.
+The ctrl ones belong to the tab showing, and each is the
 browser's own otherwise, so each says no to it - `ctrl+o` opens an export on
 search, `ctrl+d` empties the list on build. `ctrl+c` copies on both tabs that
 have something to copy, the list on build and the trip or order on inspect, and

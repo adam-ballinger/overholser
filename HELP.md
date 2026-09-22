@@ -270,6 +270,15 @@ picked and every column, even ones hidden on a small screen. Each cell stays
 on one line, and Items shows the row's biggest few items, then `…` if there
 are more.
 
+**copy orders (c)** puts just the order numbers on the clipboard, one to a
+line: click the rows you want - as many as you like - and press **c**, or use
+the button above the table, which counts them ("copy 12 orders (c)"). A trip
+row gives you every order on that trip; a row in a trip's **Orders** table on
+the inspect tab gives you that one order. The same order picked twice is only
+listed once. Paste it wherever you need the numbers - a spreadsheet column, a
+lookup box, an email. To copy one number by itself, select it in the cell and
+use the browser's own **Ctrl+C**.
+
 **The inspect tab saves the same way.** Look a trip or an order up, then
 **save table (ctrl+s)** above it, and you get one file with everything the tab
 shows - the heading, the facts, the orders and the items, colors and all,
@@ -294,6 +303,7 @@ columns it leaves out matter.
   build or help tab. The tab's first letter, and they work even while you
   are typing in a bar.
 - **b** - put the picked rows on the build list.
+- **c** - copy the picked rows' order numbers, one to a line.
 - **d** - take the picked rows off the build list.
 - **Esc** - let go of the picked rows; again, empty the filter bar.
 - **Ctrl+B** - on search, put every row the filters picked on the list; on

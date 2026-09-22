@@ -188,6 +188,7 @@
   <div class="tools table-tools">
     <button id="bldSelected">bld selection (b)</button>
     <button id="bldAll">bld all (ctrl+b)</button>
+    <button id="copyOrders">copy orders (c)</button>
     <button id="save">save table (ctrl+s)</button>
   </div>
   <table id="report"></table>
@@ -805,10 +806,34 @@ clearBuild.addEventListener('click', () => { build = []; drawBuild(); });
 function pickedRows(what) { return [...document.querySelectorAll(`tr.on[data-${what}]`)]; }
 // The buttons say how many they are about to act on, since the rows may be scrolled away from them.
 function countSelected() {
-  const add = pickedRows('add').length, drop = pickedRows('drop').length;
+  const add = pickedRows('add').length, drop = pickedRows('drop').length, orders = pickedOrders().length;
   bldSelected.textContent = add ? `bld ${add} (b)` : 'bld selection (b)';
   dropSelected.textContent = drop ? `drop ${drop} (d)` : 'drop selection (d)';
+  // This one counts orders rather than rows, since orders are what it copies: one row can hold thirty of them.
+  copyOrders.textContent = orders ? `copy ${count(orders, 'order')} (c)` : 'copy orders (c)';
   showClear();
+}
+
+// The order numbers of the picked rows, each named once, in the order the rows are shown: a trip's row brings
+// all of its orders, an order's row brings that one. Looked up the way the build list looks its entries up,
+// since a row carries the entry it adds and not the row itself.
+function pickedOrders() {
+  const rows = pickedRows('add').map(tr => {
+    const [trip, order] = tr.dataset.add.split('|');
+    return buildRow({ trip, order }, data ?? []);
+  });
+  return [...new Set(rows.filter(Boolean).flatMap(r => r.orderNumbers))];
+}
+// One order number per line: a spreadsheet takes that as a column, and a box that wants a list takes it too.
+// The button says what went, the way copy build does, and countSelected puts the count back a few seconds on.
+function copyPicked() {
+  const orders = pickedOrders();
+  if (!orders.length) return false;
+  if (!toClipboard(orders.join('\n'))) { message.textContent = 'Could not copy the order numbers'; return true; }
+  message.textContent = '';
+  copyOrders.textContent = `copied ${count(orders.length, 'order')}: paste with ctrl+v`;
+  setTimeout(countSelected, 4000);
+  return true;
 }
 function addPicked() {
   const rows = pickedRows('add');
@@ -892,6 +917,7 @@ bldAll.addEventListener('click', () => {
   message.textContent = added ? ''
     : rows.length ? 'Every row shown is already on the list' : 'No rows to put on the list';
 });
+copyOrders.addEventListener('click', () => { if (!copyPicked()) message.textContent = 'Click a row first, then copy'; });
 dropSelected.addEventListener('click', () => { if (!dropPicked()) buildMessage.textContent = 'Click a row first, then drop'; });
 // Not while a bar has the typing, and not when a modifier is down: b is a letter before it's a shortcut.
 document.addEventListener('keydown', e => {
@@ -929,6 +955,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.altKey || e.metaKey || e.target.matches?.('input')) return;
   if (e.key === 'b') addPicked();
+  if (e.key === 'c') copyPicked();
   if (e.key === 'd') dropPicked();
 
 });
