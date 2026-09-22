@@ -161,9 +161,14 @@ into a symbol.
   report's own `late`, a Ship Date Category ending in "Late"), across by the
   shift that owns the line's sales channel (1st shift: HOME DEPOT-OK, LOWES-OK, ACE HDW-OK,
   ORGILL-OK, DISTRIBUTORS&FIELD SALES-OK; 2nd shift: MENARDS-OK), down by who
-  works its line status (holds and ready are Nicole's, holds being Entered,
-  Booked or Awaiting; picked/released is Brad's and Nikki's), with a total each
-  way. The columns are the shifts alone - `kpiNote` under the table writes each
+  works it (holds, covered/ready and short/ready are Nicole's, picked/released
+  Brad's and Nikki's), with a total each way. Each row carries the test a line
+  has to pass (`KPI_STATUSES`) rather than a list of statuses, since ready is
+  two rows: covered and short, the line's own `allocation`, which is the
+  difference between a line Nicole can hand over and one she can't. Only ready
+  is worth splitting - `allocate` makes every Picked and Released line alloc.
+  Holds is first so that a line no row's test takes falls in it, the way
+  `orderStatus` treats a status it doesn't know. The columns are the shifts alone - `kpiNote` under the table writes each
   one out in full, whose it is and the channels it owns, off `KPI_SHIFTS`
   itself (name, who, channels), so the table and the note can't drift apart. Cases
   by line, not by order or row, so it flattens `data`'s rows back to their

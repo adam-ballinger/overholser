@@ -456,10 +456,16 @@ const KPI_SHIFTS = [
   ['1st shift', 'Brad', ['HOME DEPOT-OK', 'LOWES-OK', 'ACE HDW-OK', 'ORGILL-OK', 'DISTRIBUTORS&FIELD SALES-OK']],
   ['2nd shift', 'Nikki', ['MENARDS-OK']],
 ];
+// The rows, each with the test a line has to pass to count in it. Ready is two rows: whether the stock is
+// there is the difference between a line Nicole can hand over and one she can't, and allocate has already
+// said which (Picked and Released lines are always alloc, so only Ready is worth splitting). A line none of
+// the tests takes is a hold, the way orderStatus treats a status it doesn't know, so holds comes first.
+const HOLD_STATUSES = new Set(['Entered', 'Booked', 'Awaiting']);
 const KPI_STATUSES = [
-  ['holds (Nicole)', ['Entered', 'Booked', 'Awaiting']],
-  ['ready (Nicole)', ['Ready']],
-  ['picked/released (Brad, Nikki)', ['Picked', 'Released']],
+  ['holds (Nicole)', l => HOLD_STATUSES.has(l.lineStatus)],
+  ['covered/ready (Nicole)', l => l.lineStatus === 'Ready' && l.allocation === 'alloc'],
+  ['short/ready (Nicole)', l => l.lineStatus === 'Ready' && l.allocation === 'short'],
+  ['picked/released (Brad, Nikki)', l => MOVING.has(l.lineStatus)],
 ];
 
 const KPI_COLUMNS = [...KPI_SHIFTS.map(([name]) => name), 'total'];
@@ -471,8 +477,8 @@ function kpiMatrix(rows) {
     if (!late(l)) continue;
     const shift = KPI_SHIFTS.findIndex(([, , channels]) => channels.includes(l.salesChannel));
     if (shift < 0) continue;
-    const status = KPI_STATUSES.findIndex(([, statuses]) => statuses.includes(l.lineStatus));
-    cases[status < 0 ? 0 : status][shift] += l.cases;  // a status we don't know is a hold, the way orderStatus has it
+    const status = KPI_STATUSES.findIndex(([, counts]) => counts(l));
+    cases[status < 0 ? 0 : status][shift] += l.cases;  // a line no row takes is a hold, the first row
   }
   const across = ns => [...ns, ns.reduce((a, b) => a + b, 0)];
   return [

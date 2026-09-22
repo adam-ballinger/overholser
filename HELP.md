@@ -252,8 +252,11 @@ tab is what is already behind.
   Sales. **2nd shift** is Menards. Under the table each shift is written out
   in full - whose it is, and the sales channels it owns - so you never have to
   remember them.
-- **holds (Nicole)**, **ready (Nicole)** and **picked/released (Brad, Nikki)**
-  are the line's status.
+- The rows are where the line has got to. **holds (Nicole)** is still
+  Entered, Booked or Awaiting. **covered/ready (Nicole)** and **short/ready
+  (Nicole)** are both Ready, split by whether the stock is there for them -
+  covered has it, short doesn't (see **Allocation**). **picked/released
+  (Brad, Nikki)** is in the warehouse's hands.
 - Each cell is the cases on those late lines, counted line by line, not order
   by order. The totals add up both ways.
 - **Click any number to copy it.** It goes on the clipboard as plain text,
