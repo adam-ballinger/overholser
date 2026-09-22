@@ -463,8 +463,8 @@ const KPI_SHIFTS = [
 const HOLD_STATUSES = new Set(['Entered', 'Booked', 'Awaiting']);
 const KPI_STATUSES = [
   ['holds (Nicole)', l => HOLD_STATUSES.has(l.lineStatus)],
-  ['covered/ready (Nicole)', l => l.lineStatus === 'Ready' && l.allocation === 'alloc'],
   ['short/ready (Nicole)', l => l.lineStatus === 'Ready' && l.allocation === 'short'],
+  ['covered/ready (Nicole)', l => l.lineStatus === 'Ready' && l.allocation === 'alloc'],
   ['picked/released (Brad, Nikki)', l => MOVING.has(l.lineStatus)],
 ];
 
@@ -474,9 +474,14 @@ const KPI_COLUMNS = [...KPI_SHIFTS.map(([name]) => name), 'total'];
 // is written, and a warning to print under it]. The name is in the heading, so it is capitalised the way a
 // heading is. Only Orders has the warning: it is the one measure whose totals are smaller than its cells
 // added up, since an order can be on two rows and is still one order.
+// Whole dollars, unlike the report's money: the matrix is read at a glance, and cents on a five-figure
+// number are noise. Both fraction digits, since currency asks for two and a maximum under the minimum throws.
+const wholeDollars = n =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
 const KPI_MEASURES = [
   ['Cases', ls => total(ls, 'cases'), n => n.toLocaleString()],
-  ['Dollars', ls => total(ls, 'dollars'), money],
+  ['Dollars', ls => total(ls, 'dollars'), wholeDollars],
   ['Orders', ls => new Set(ls.map(l => l.orderNumber)).size, n => n.toLocaleString(),
     'an order on two rows is one order in the totals, so these totals are less than their cells added up'],
 ];

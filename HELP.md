@@ -259,10 +259,12 @@ page never sees it. Use **t**.)
   in full - whose it is, and the sales channels it owns - so you never have to
   remember them.
 - The rows are where the line has got to. **holds (Nicole)** is still
-  Entered, Booked or Awaiting. **covered/ready (Nicole)** and **short/ready
+  Entered, Booked or Awaiting. **short/ready (Nicole)** and **covered/ready
   (Nicole)** are both Ready, split by whether the stock is there for them -
-  covered has it, short doesn't (see **Allocation**). **picked/released
+  short hasn't got it, covered has (see **Allocation**). Short is above
+  covered: the lines that can't go out are the ones worth reading first. **picked/released
   (Brad, Nikki)** is in the warehouse's hands.
+- Dollars are rounded to the nearest dollar.
 - Each cell is the late lines in it, counted line by line, not order by
   order. On cases and dollars the totals add up both ways. On **orders** they
   don't: an order with a ready line and a picked line is in two rows and is

@@ -161,8 +161,10 @@ into a symbol.
   report's own `late`, a Ship Date Category ending in "Late"), across by the
   shift that owns the line's sales channel (1st shift: HOME DEPOT-OK, LOWES-OK, ACE HDW-OK,
   ORGILL-OK, DISTRIBUTORS&FIELD SALES-OK; 2nd shift: MENARDS-OK), down by who
-  works it (holds, covered/ready and short/ready are Nicole's, picked/released
-  Brad's and Nikki's), with a total each way. Each row carries the test a line
+  works it (holds, short/ready and covered/ready are Nicole's, picked/released
+  Brad's and Nikki's), with a total each way. Short sits above covered because
+  the lines that can't go out are the ones worth reading first, and holds stays
+  first of all, below. Each row carries the test a line
   has to pass (`KPI_STATUSES`) rather than a list of statuses, since ready is
   two rows: covered and short, the line's own `allocation`, which is the
   difference between a line Nicole can hand over and one she can't. Only ready
@@ -185,7 +187,12 @@ into a symbol.
   Late" - and **t steps the measure** (`KPI_MEASURES`, `nextMeasure`): cases,
   dollars, orders, round again. Each measure is [name, what a run of lines comes
   to, how it is written, a warning to print under it], so the heading, the cells
-  and the caveat all come off the one entry. `kpiMatrix` keeps each cell's lines
+  and the caveat all come off the one entry. Dollars round to the whole dollar
+  (`wholeDollars`, not the report's `money`): cents on a five-figure number are
+  noise in a table read at a glance. The rounding is on each total rather than on
+  the lines under it, which is what keeps a total true to its lines, so a dollars
+  column can read a dollar off its own cells added up. Rounding the cells first
+  would trade a right answer for a tidy-looking one. `kpiMatrix` keeps each cell's lines
   and runs the measure over them rather than adding the cells up, which is what
   makes orders right: an order with a ready line and a picked line is in two
   rows and is still one order, so its totals come out smaller than its cells -
