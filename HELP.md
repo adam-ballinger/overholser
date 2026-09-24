@@ -8,7 +8,8 @@ or missing, tell whoever sent you the link.
 
 - Open the page in a web browser, like Chrome or Edge. The link is all you
   need; nothing to install, and it is always the newest version.
-- Click **open csv** - or press **Ctrl+O** - and pick the open orders export
+- Click **open csv**, at the top above the tabs - or press **Ctrl+O** on
+  any tab - and pick the open orders export
   (a `.csv` file) from the office system.
 - A bar next to the button shows it loading; a big export takes a few
   seconds, most of it on "sorting orders".
@@ -25,8 +26,7 @@ or missing, tell whoever sent you the link.
 
 A line above the tabs, white on orange, when the numbers can't be trusted:
 
-- **No export open** - nothing has been opened yet. Press **Ctrl+O** on the
-  search tab.
+- **No export open** - nothing has been opened yet. Press **Ctrl+O**.
 - **This export is 3 hours old** - what you are looking at was made three
   hours ago, and some of those orders have probably shipped since. Open a
   newer one. It counts from the export's own date and time, the one beside
@@ -368,6 +368,6 @@ columns it leaves out matter.
   plain text. (With something selected on the page it copies that instead, the
   way it normally would.)
 - **Ctrl+D** - on build, empty the list.
-- **Ctrl+O** - on search, open an export.
+- **Ctrl+O** - open an export, on any tab.
 - **Ctrl+S** - save the table: the report on search, the trip or order on
   inspect.

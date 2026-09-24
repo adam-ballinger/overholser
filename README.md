@@ -26,6 +26,8 @@ starting with the same letter is what would break it. Like Esc it works while
 a bar has the typing, since leaving the filter bar for inspect is what it is
 for, and `e.code` rather than `e.key`, since a Mac's Option turns the letter
 into a symbol.
+**open csv (ctrl+o)** sits above the tabs, with its load bar and the file's
+name, since every tab reads the same export; ctrl+o works on any tab.
 - **search** is the orders report. Pick an export with **open csv (ctrl+o)**;
   the key clicks the hidden file input behind the button, and ctrl+o being the
   browser's own key for opening a file is the reason to take it (a text bar
@@ -258,7 +260,7 @@ and as tab-separated text. Adam asked for it out; it is in the history, and
 them on the build list, `d` takes them off, `c` copies their order numbers.
 The ctrl ones belong to the tab showing, and each is the
 browser's own otherwise, so each says no to it - `ctrl+o` opens an export on
-search, `ctrl+d` empties the list on build. `ctrl+c` copies on both tabs that
+any tab, `ctrl+d` empties the list on build. `ctrl+c` copies on both tabs that
 have something to copy, the list on build and the trip or order on inspect, and
 `ctrl+s` saves the table on both tabs that have one, the report on search and
 the trip or order on inspect. `ctrl+b` is whatever building means on the tab

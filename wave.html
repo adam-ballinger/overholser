@@ -32,7 +32,7 @@
   #tabs button:hover { color: #1b1b19 }
   #tabs button.on { color: #1b1b19; border-bottom-color: #1b1b19 }
   /* The warning across the top: the text carries the color, like every other warning on the page. */
-  #warning { margin-bottom: 10px }
+  #file, #warning { margin-bottom: 10px }
 
   /* Search tab */
   .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px }
@@ -180,7 +180,12 @@
      <span class="frame">└──●─●───────────────●─●──┘ └●──●┘</span></pre>
 <div class="brand"><b>wave app</b><br>open orders, sorted<br><span id="version"></span></div>
 </header>
-<!-- Nothing open, or what is open has aged: above the tabs, so every tab has it. -->
+<!-- The export and the warning about it sit above the tabs, since every tab reads the same export. -->
+<div id="file" class="tools">
+  <label class="button">open csv (ctrl+o)<input type="file" id="csv" accept=".csv" hidden></label>
+  <span id="progress"></span>
+  <span id="filename"></span>
+</div>
 <div id="warning" hidden></div>
 <!-- The tabs read as commands, like the filter bar: one word each, with the longer wording in the tooltip. -->
 <nav id="tabs"><button data-tab="search-tab" class="on" title="The whole open orders export, filtered (alt+s)">search</button><button
@@ -190,18 +195,13 @@
   data-tab="help-tab" title="How to use this page (alt+h)">help</button></nav>
 <main>
 <section id="search-tab">
-  <div class="tools">
-    <label class="button">open csv (ctrl+o)<input type="file" id="csv" accept=".csv" hidden></label>
-    <span id="progress"></span>
-    <span id="filename"></span>
-  </div>
   <!-- clear sits at the end of the line it empties, as plain text, and only while there is something to empty. -->
   <div class="bar"><span>&gt;</span><input id="flags" autocomplete="off" spellcheck="false"
     placeholder="type filters or click them below; Enter runs them"><button id="clear" hidden>clear filters (esc)</button></div>
   <div id="message" class="message"></div>
   <div id="tags"></div>
   <div id="stats" class="stats">Pick an open orders export. It stays in this browser.</div>
-  <!-- save and bld all act on the table, so they sit with it rather than up with open csv. -->
+  <!-- save and bld all act on the table, so they sit with it rather than up top with open csv. -->
   <div class="tools table-tools">
     <button id="bldSelected">bld selection (b)</button>
     <button id="bldAll">bld all (ctrl+b)</button>
@@ -280,7 +280,7 @@ let fileTime = null;   // the open export's own date and time, or null when ther
 
 function showWarning() {
   const hours = fileTime && Math.floor((Date.now() - fileTime) / 3600e3);
-  const text = !fileTime ? 'No export open. Pick one with open csv (ctrl+o) on the search tab.'
+  const text = !fileTime ? 'No export open. Pick one with open csv (ctrl+o).'
     : hours >= STALE_HOURS ? `This export is ${count(hours, 'hour')} old. Open a newer one with open csv (ctrl+o).`
     : '';
   warning.innerHTML = text ? `<span class="warning">${text}</span>` : '';
@@ -1003,13 +1003,13 @@ document.addEventListener('keydown', e => {
     if (tab) { e.preventDefault(); showTab(tab.dataset.tab); }
     return;
   }
-  // The ctrl keys belong to the tab showing, and each is the browser's own key otherwise, so each says no to it.
+  // The ctrl keys belong to the tab showing (ctrl+o to every tab, like open csv), and each is the browser's own key otherwise, so each says no to it.
   // Ctrl+C steps aside for a selection: copying a name out of the table is what the browser's own key is for.
   if (e.ctrlKey && !e.altKey && !e.metaKey) {
     if (e.key === 'c' && showing('build-tab') && !getSelection().toString()) { e.preventDefault(); copyBuild.click(); }
     if (e.key === 'c' && showing('inspect-tab') && !getSelection().toString()) { e.preventDefault(); copyTrip.click(); }
     if (e.key === 'd' && showing('build-tab')) { e.preventDefault(); clearBuild.click(); }
-    if (e.key === 'o' && showing('search-tab')) { e.preventDefault(); csv.click(); }
+    if (e.key === 'o') { e.preventDefault(); csv.click(); }
     if (e.key === 's' && showing('search-tab')) { e.preventDefault(); save.click(); }
     if (e.key === 's' && showing('inspect-tab')) { e.preventDefault(); saveTrip.click(); }
     // Ctrl+B is whatever building means on the tab showing: on search every row the filters picked, on
