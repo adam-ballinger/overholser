@@ -217,15 +217,15 @@ takes you to the inspect tab, the way it always has.
 
 Across the top the list says what it comes to: total dollars first, then how
 many rows, orders, lines and cases. Under that are the six things the wave
-sheet wants - trip, order numbers, customer, ship method, ship date and cases
+sheet wants - trip, order numbers, ship to, ship method, ship date and cases
 - numbered down the side.
 
 **copy build (ctrl+c)** puts the whole list on the clipboard, one line per row, and
 **Ctrl+V** pastes it into the sheet. Each value lands in its own cell, and the
 order numbers stay as they are instead of turning into one long number. Two
-blank cells go in between the order numbers and the customer, which is where
+blank cells go in between the order numbers and the ship to, which is where
 the sheet fills in its own - so what you paste lines up even though the table
-doesn't show them. A trip going to more than one customer lists them all; more
+doesn't show them. A trip going to more than one ship to lists them all; more
 than one ship method says how many ("2 ship methods").
 
 To take rows off, pick them the same way and press **d**, or use the **drop

@@ -299,11 +299,11 @@ const ordersTotals = rows =>
   `${rows.length.toLocaleString()} rows: ${new Set(rows.flatMap(r => r.orderNumbers)).size.toLocaleString()} orders, ` +
   `${rows.reduce((t, r) => t + r.lines.length, 0).toLocaleString()} lines, ${total(rows, 'cases').toLocaleString()} cases, ${money(total(rows, 'dollars'))}`;
 
-// A row's customers, each named once, the way its order numbers are: a count would lose them.
-const customers = r => [...new Set(r.lines.map(l => l.customer).filter(Boolean))].join(', ');
+// A row's ship tos, each named once, the way its order numbers are: a count would lose them.
+const shipToList = r => [...new Set(r.lines.map(l => l.shipTo).filter(Boolean))].join(', ');
 
 // One row of a report row for the wave sheet, tab separated, eight cells: trip, its order numbers, two the
-// sheet fills in itself, customer, ship method, ship date, cases. Customers are listed like the order numbers,
+// sheet fills in itself, ship to, ship method, ship date, cases. Ship tos are listed like the order numbers,
 // so none are lost; ship method says how many when the trip has more than one, the way the report does; the
 // ship date is the trip's earliest, as in the report.
 // The lists have a space after the comma because Excel reads a pasted cell as if it were typed: "54055633,54055634"
@@ -313,7 +313,7 @@ const waveLine = r => [
   r.orderNumbers.join(', '),
   '',
   '',
-  customers(r),
+  shipToList(r),
   r.shippingMethods,
   mdy(r.shipDate),
   r.cases,
@@ -335,7 +335,7 @@ function buildRow(entry, data) {
 const BUILD_COLUMNS = [
   { heading: 'Trip', width: 7, find: r => [r.trip], value: r => r.trip },
   { heading: 'Order Numbers', width: 30, id: true, find: r => r.orderNumbers, value: r => r.orderNumbers.join(' ') },
-  { heading: 'Customer', width: 24, value: customers },
+  { heading: 'Ship To', width: 40, value: shipToList },
   { heading: 'Ship Method', width: 26, value: r => r.shippingMethods },
   SHIP_DATE_COLUMN,
   { heading: 'Cases', width: 6, right: true, value: r => r.cases.toLocaleString() },

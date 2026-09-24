@@ -151,7 +151,7 @@ into a symbol.
   `#build-tab th, td` overrides the narrow-window rules, since all six columns
   are in the paste. **copy build** is one `waveLine` per row, newline
   separated, text only, no HTML: it's for pasting into the sheet,
-  not an email. `waveLine` lists customers like the order numbers, each named
+  not an email. `waveLine` lists ship tos like the order numbers, each named
   once; ship method says how many when a trip has more than one ("2 ship
   methods"), like the report; the ship date is the earliest. The lists have a
   space after the comma, since Excel reads a pasted cell as if it were typed
