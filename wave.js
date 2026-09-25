@@ -296,11 +296,23 @@ function topDollars(rows, share = 0.8) {
 
 // --priority sorts rows by what their lateness costs, most first: each line's dollars times its days late (from
 // its ship date to the export's day, `today`), Home Depot (and .COM) and Lowes lines times 10, Ace times 5.
-// Lines not late count nothing, so late rows lead and the rest keep their soonest-first order.
+// Lines not late count nothing, so late rows lead and the rest keep their soonest-first order. It goes order by
+// order (each order's lines on the row): a short order counts nothing, and a split one that allows backorders
+// counts in a second, lower score, so its row comes after every row with anything else late. Returns
+// [score, lower score], compared in that order.
 const PRIORITY_WEIGHTS = [['HOME DEPOT', 10], ['LOWES', 10], ['ACE', 5]];
 const weight = l => PRIORITY_WEIGHTS.find(([c]) => l.salesChannel.startsWith(c))?.[1] ?? 1;
 const daysLate = (l, today) => Math.max(0, Math.round((today - l.shipDate) / 864e5));
-const priority = (row, today) => row.lines.reduce((t, l) => t + l.dollars * daysLate(l, today) * weight(l), 0);
+function priority(row, today) {
+  const scores = [0, 0];
+  for (const ls of Map.groupBy(row.lines, l => l.orderNumber).values()) {
+    const { allocation } = summarize(ls);
+    if (allocation === 'short') continue;
+    const lower = allocation === 'split' && ls[0].shipAndCancel.startsWith('BackOrders') ? 1 : 0;
+    scores[lower] += ls.reduce((t, l) => t + l.dollars * daysLate(l, today) * weight(l), 0);
+  }
+  return scores;
+}
 
 // The report's counts line, over every row it covers.
 const ordersTotals = rows =>

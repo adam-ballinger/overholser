@@ -377,6 +377,9 @@ The other plain flags (`OTHER_FLAGS`):
   days late (ship date to the export's own day), Home Depot (and .COM) and Lowes
   lines times 10, Ace times 5, most first (`priority`, `PRIORITY_WEIGHTS`).
   Lines not late count 0, so late rows lead and the rest stay soonest first.
+  It goes order by order within the row: a short order counts 0, and a split
+  order whose Ship and Cancel is BackOrders Allowed counts only in a second,
+  lower score, so it sorts after every row with anything else late.
 
 Names, the only filters with a value (`FILTERS`): `--customer`, `--shipto`
 match any part of any line on the row, ignoring case. Put quotes around a name
