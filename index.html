@@ -540,6 +540,14 @@ function topDollars(rows, share = 0.8) {
   return sorted.slice(0, n);
 }
 
+// --priority sorts rows by what their lateness costs, most first: each line's dollars times its days late (from
+// its ship date to the export's day, `today`), Home Depot (and .COM) and Lowes lines times 10, Ace times 5.
+// Lines not late count nothing, so late rows lead and the rest keep their soonest-first order.
+const PRIORITY_WEIGHTS = [['HOME DEPOT', 10], ['LOWES', 10], ['ACE', 5]];
+const weight = l => PRIORITY_WEIGHTS.find(([c]) => l.salesChannel.startsWith(c))?.[1] ?? 1;
+const daysLate = (l, today) => Math.max(0, Math.round((today - l.shipDate) / 864e5));
+const priority = (row, today) => row.lines.reduce((t, l) => t + l.dollars * daysLate(l, today) * weight(l), 0);
+
 // The report's counts line, over every row it covers.
 const ordersTotals = rows =>
   `${rows.length.toLocaleString()} rows: ${new Set(rows.flatMap(r => r.orderNumbers)).size.toLocaleString()} orders, ` +
@@ -600,8 +608,8 @@ const FILTERS = [
   ['item', 'itemNo', same],
 ];
 
-// The plain flags that aren't tags (see rowMatches and, for dollars, topDollars).
-const OTHER_FLAGS = ['144', 'no-144', 'flr-mtl', 'dollars'];
+// The plain flags that aren't tags (see rowMatches; for dollars, topDollars; for priority, priority).
+const OTHER_FLAGS = ['144', 'no-144', 'flr-mtl', 'dollars', 'priority'];
 
 const LATE = ['9+ Days Late', '4-8 Days Late', '1-3 Days Late'];
 
@@ -902,6 +910,10 @@ function render() {
   shownFlags = flags.value.trim().replace(/\s+/g, ' ');
   const picked = data.filter(r => rowMatches(r, opts));
   rows = (opts.dollars ? topDollars(picked) : picked).toSorted(soonestFirst);
+  if (opts.priority) {
+    const today = new Date(fileTime).setHours(0, 0, 0, 0), score = new Map(rows.map(r => [r, priority(r, today)]));
+    rows.sort((a, b) => score.get(b) - score.get(a)); // stable, so ties stay soonest first
+  }
   stats.innerHTML = rows.length
     ? `<div class="headline">${ordersTotals(rows)}</div>`
       + STATS.map(([label, value]) => `<div>${label && `<b>${esc(label)}</b> `}${esc(value(rows))}</div>`).join('')

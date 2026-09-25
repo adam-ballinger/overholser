@@ -373,6 +373,10 @@ The other plain flags (`OTHER_FLAGS`):
 - `--dollars` keeps the biggest rows that together make up 80% of the dollars
   (`topDollars`). It compares rows against each other, so the page runs it
   last, on whatever the other filters picked.
+- `--priority` picks nothing; it sorts the rows by each line's dollars times its
+  days late (ship date to the export's own day), Home Depot (and .COM) and Lowes
+  lines times 10, Ace times 5, most first (`priority`, `PRIORITY_WEIGHTS`).
+  Lines not late count 0, so late rows lead and the rest stay soonest first.
 
 Names, the only filters with a value (`FILTERS`): `--customer`, `--shipto`
 match any part of any line on the row, ignoring case. Put quotes around a name

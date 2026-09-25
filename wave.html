@@ -395,6 +395,10 @@ function render() {
   shownFlags = flags.value.trim().replace(/\s+/g, ' ');
   const picked = data.filter(r => rowMatches(r, opts));
   rows = (opts.dollars ? topDollars(picked) : picked).toSorted(soonestFirst);
+  if (opts.priority) {
+    const today = new Date(fileTime).setHours(0, 0, 0, 0), score = new Map(rows.map(r => [r, priority(r, today)]));
+    rows.sort((a, b) => score.get(b) - score.get(a)); // stable, so ties stay soonest first
+  }
   stats.innerHTML = rows.length
     ? `<div class="headline">${ordersTotals(rows)}</div>`
       + STATS.map(([label, value]) => `<div>${label && `<b>${esc(label)}</b> `}${esc(value(rows))}</div>`).join('')
