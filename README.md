@@ -109,7 +109,10 @@ name, since every tab reads the same export; ctrl+o works on any tab.
   remember which rows are on screen.
   **save table (ctrl+s)** is above the lot, where search's is: the whole tab as
   an HTML file, and **copy table (ctrl+c)** beside it is the same trip or order
-  as plain text (see save table and copy table, below).
+  as plain text (see save table and copy table, below). **copy order numbers
+  (c)** beside them copies every order number showing, most cases first, or
+  just the picked Orders rows' when some are picked (`ordersByCases`, shared
+  with search's copy).
   Then two tables: its orders (`TRIP_ORDER_COLUMNS`, soonest first) and its items
   (`TRIP_ITEM_COLUMNS`, short then split first, then most dollars), then its
   LPNs when any line has one (`TRIP_LPN_COLUMNS`, `rowLpns`: the pallets its

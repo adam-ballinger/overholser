@@ -216,6 +216,7 @@
   <div id="tripMessage" class="message"></div>
   <!-- copy and save act on what's below them, the way search's save does. -->
   <div class="tools table-tools">
+    <button id="copyTripOrders">copy order numbers (c)</button>
     <button id="copyTrip">copy table (ctrl+c)</button>
     <button id="saveTrip">save table (ctrl+s)</button>
   </div>
@@ -813,6 +814,16 @@ copyTrip.addEventListener('click', () => {
   setTimeout(() => copyTrip.textContent = 'copy table (ctrl+c)', 4000);
 });
 
+// Every order number showing, most cases first, as the search tab's copy writes them - unless Orders rows are
+// picked, when it's just theirs, the way c is everywhere.
+copyTripOrders.addEventListener('click', () => {
+  const picked = pickedOrders(), orders = picked.length ? picked : ordersByCases(shownRows);
+  if (!orders.length) return;
+  copyTripOrders.textContent = toClipboard(orders.join(', '))
+    ? `copied ${count(orders.length, 'order number')}: paste with ctrl+v` : 'could not copy';
+  setTimeout(() => copyTripOrders.textContent = 'copy order numbers (c)', 4000);
+});
+
 // ---- Build tab ----
 
 // The trips and orders to paste into the wave sheet, in the order they were added. Entries rather than rows
@@ -894,13 +905,15 @@ function countSelected() {
 // order picked on two trips adds up what each of them holds. Looked up the way the build list looks its
 // entries up, since a row carries the entry it adds and not the row itself.
 function pickedOrders() {
-  const cases = new Map();
-  for (const tr of pickedRows('add')) {
+  return ordersByCases(pickedRows('add').map(tr => {
     const [trip, order] = tr.dataset.add.split('|');
-    for (const o of buildRow({ trip, order }, data ?? [])?.orders ?? []) {
-      cases.set(o.orderNumber, (cases.get(o.orderNumber) ?? 0) + o.cases);
-    }
-  }
+    return buildRow({ trip, order }, data ?? []);
+  }).filter(Boolean));
+}
+// The rows' order numbers, each named once, most cases first.
+function ordersByCases(rows) {
+  const cases = new Map();
+  for (const o of rows.flatMap(r => r.orders)) cases.set(o.orderNumber, (cases.get(o.orderNumber) ?? 0) + o.cases);
   return [...cases].sort((a, b) => b[1] - a[1]).map(([number]) => number);
 }
 // A comma list, the way the build list writes its order numbers: a space after the comma, since Excel reads a
@@ -1041,7 +1054,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.altKey || e.metaKey || e.target.matches?.('input')) return;
   if (e.key === 'b') addPicked();
-  if (e.key === 'c') copyPicked();
+  if (e.key === 'c') showing('inspect-tab') ? copyTripOrders.click() : copyPicked();
   if (e.key === 'd') dropPicked();
 
 });
