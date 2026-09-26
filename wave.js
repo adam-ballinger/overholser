@@ -175,6 +175,8 @@ const rowLpns = lines => [...Map.groupBy(lines.filter(l => l.lpn), l => l.lpn).v
   lpn: ls[0].lpn,
   orderNumbers: [...new Set(ls.map(l => l.orderNumber))],
   items: new Set(ls.map(l => l.itemNo)).size,
+  // Its items, most cases first (then most dollars): what you'd see on the pallet.
+  itemNos: rowItems(ls).sort((a, b) => b.cases - a.cases || b.dollars - a.dollars).map(i => i.itemNo),
 })).sort((a, b) => a.orderNumbers[0].localeCompare(b.orderNumbers[0]) || a.lpn.localeCompare(b.lpn));
 
 // Takes the CSV text and returns the report rows, all grouping and computing done once, so the page only filters,
@@ -300,6 +302,9 @@ const TRIP_LPN_COLUMNS = [
   { heading: 'LPN', width: 17, value: p => p.lpn },
   { heading: 'Order', width: 9, id: true, find: p => p.orderNumbers, value: p => p.orderNumbers.join(' ') },
   { heading: 'Items', width: 5, right: true, value: p => p.items },
+  // Its top 10 items, then "..." if it has more. copyWidth: the copy keeps all ten rather than cutting at COPY_WIDTH.
+  { heading: 'Top Items', width: 64, copyWidth: 64, value: p =>
+    p.itemNos.slice(0, 10).join(' ') + (p.itemNos.length > 10 ? ' ...' : '') },
   ...TOTAL_COLUMNS,
   STATUSES_COLUMN,
 ];

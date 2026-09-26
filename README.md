@@ -113,7 +113,8 @@ name, since every tab reads the same export; ctrl+o works on any tab.
   Then two tables: its orders (`TRIP_ORDER_COLUMNS`, soonest first) and its items
   (`TRIP_ITEM_COLUMNS`, short then split first, then most dollars), then its
   LPNs when any line has one (`TRIP_LPN_COLUMNS`, `rowLpns`: the pallets its
-  picked lines are on, by order; the note counts picked lines with no LPN). A
+  picked lines are on, by order, each with its top 10 items by cases; the note
+  counts picked lines with no LPN). A
   line on two pallets comes as "343649, 8147964" and is its own row, since the
   export doesn't say how it splits. The export's `LPN` column is required, so
   an export from before it came in won't load. A new

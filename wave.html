@@ -769,7 +769,7 @@ saveTrip.addEventListener('click', () => {
 const copyColumns = (columns, headings) => headings.map(h => columns.find(c => c.heading === h));
 const COPY_ORDER_COLUMNS = copyColumns(TRIP_ORDER_COLUMNS, ['Order', 'Ship To', 'Ship Date', 'Alloc', 'Cases', 'Dollars']);
 const COPY_ITEM_COLUMNS = copyColumns(TRIP_ITEM_COLUMNS, ['Item', 'Description', 'Pieces', 'Alloc', 'Cases', 'Dollars']);
-const COPY_LPN_COLUMNS = copyColumns(TRIP_LPN_COLUMNS, ['LPN', 'Order', 'Items', 'Cases', 'Dollars']);
+const COPY_LPN_COLUMNS = copyColumns(TRIP_LPN_COLUMNS, ['LPN', 'Order', 'Items', 'Cases', 'Dollars', 'Top Items']);
 // Nothing in the copy is wider than this: the page gives its text columns 40 characters, which is more of one
 // line than an email wants. The dates, money and counts are narrower than it already.
 const COPY_WIDTH = 26;
@@ -779,7 +779,7 @@ const COPY_WIDTH = 26;
 // column is cut the way the page cuts it.
 function textTable(columns, rs) {
   const cell = (c, r) => {
-    const width = Math.min(c.width, COPY_WIDTH), text = String(c.value(r));
+    const width = Math.min(c.width, c.copyWidth ?? COPY_WIDTH), text = String(c.value(r));
     return text.length > width ? text.slice(0, width - 1) + '…' : text;
   };
   const lines = [columns.map(c => c.heading), ...rs.map(r => columns.map(c => cell(c, r)))];
