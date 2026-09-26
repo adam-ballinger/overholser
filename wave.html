@@ -688,8 +688,14 @@ function tripDetail(r, order) {
 ${facts.map(([label, value]) => `<div>${label && `<b>${label}</b> `}${value}</div>`).join('')}</div>
 ${table('Orders', r.orders.length.toLocaleString(), TRIP_ORDER_COLUMNS, r.orders, o => `${r.trip}|${o.orderNumber}`)}
 ${table('Items', `${r.items.length.toLocaleString()}, short and split first`, TRIP_ITEM_COLUMNS,
-    problemsFirst(r.items))}`;
+    problemsFirst(r.items))}
+${r.lpns.length ? table('LPNs', r.lpns.length.toLocaleString() + lpnMissing(r), TRIP_LPN_COLUMNS, r.lpns) : ''}`;
 }
+// The LPNs table's note says when picked lines have no LPN, since their pallets are missing from it.
+const lpnMissing = r => {
+  const n = r.lines.filter(l => l.lineStatus === 'Picked' && !l.lpn).length;
+  return n ? `, ${count(n, 'picked line')} without one` : '';
+};
 
 // Shows the trip whose number is in the box, or, if no trip has that number, the order itself - as its own row
 // (makeRow over just its lines), so its totals, orders and items are the order's and not its whole trip's. An
@@ -763,6 +769,7 @@ saveTrip.addEventListener('click', () => {
 const copyColumns = (columns, headings) => headings.map(h => columns.find(c => c.heading === h));
 const COPY_ORDER_COLUMNS = copyColumns(TRIP_ORDER_COLUMNS, ['Order', 'Ship To', 'Ship Date', 'Alloc', 'Cases', 'Dollars']);
 const COPY_ITEM_COLUMNS = copyColumns(TRIP_ITEM_COLUMNS, ['Item', 'Description', 'Pieces', 'Alloc', 'Cases', 'Dollars']);
+const COPY_LPN_COLUMNS = copyColumns(TRIP_LPN_COLUMNS, ['LPN', 'Order', 'Items', 'Cases', 'Dollars']);
 // Nothing in the copy is wider than this: the page gives its text columns 40 characters, which is more of one
 // line than an email wants. The dates, money and counts are narrower than it already.
 const COPY_WIDTH = 26;
@@ -790,7 +797,10 @@ function detailText() {
       ...[...detail.querySelectorAll('.stats > div')].map(d => d.textContent.trim()),
       '', `ORDERS  ${r.orders.length.toLocaleString()}`, textTable(COPY_ORDER_COLUMNS, r.orders),
       '', `ITEMS  ${r.items.length.toLocaleString()}, short and split first`,
-      textTable(COPY_ITEM_COLUMNS, problemsFirst(r.items))].join('\n');
+      textTable(COPY_ITEM_COLUMNS, problemsFirst(r.items)),
+      ...r.lpns.length
+        ? ['', `LPNS  ${r.lpns.length.toLocaleString()}${lpnMissing(r)}`, textTable(COPY_LPN_COLUMNS, r.lpns)] : [],
+    ].join('\n');
   }).join('\n\n');
 }
 

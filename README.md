@@ -111,7 +111,12 @@ name, since every tab reads the same export; ctrl+o works on any tab.
   an HTML file, and **copy table (ctrl+c)** beside it is the same trip or order
   as plain text (see save table and copy table, below).
   Then two tables: its orders (`TRIP_ORDER_COLUMNS`, soonest first) and its items
-  (`TRIP_ITEM_COLUMNS`, short then split first, then most dollars). A new
+  (`TRIP_ITEM_COLUMNS`, short then split first, then most dollars), then its
+  LPNs when any line has one (`TRIP_LPN_COLUMNS`, `rowLpns`: the pallets its
+  picked lines are on, by order; the note counts picked lines with no LPN). A
+  line on two pallets comes as "343649, 8147964" and is its own row, since the
+  export doesn't say how it splits. The export's `LPN` column is required, so
+  an export from before it came in won't load. A new
   export redraws it. Table titles sit above the tables, not in a row: a fixed
   layout table takes its column widths from its first row. Phones drop PO,
   Delivery, Customer, Hold, Pieces and Onhand.
@@ -433,7 +438,7 @@ Future.
     the `144"` tag that starts the Items cell of a row holding a 144" item.
   - Cyan: the temporary `flr-mtl` tag.
   - Order numbers are amber.
-- Only 25 of the CSV's columns are kept (`COLUMNS`), as camelCase properties.
+- Only 26 of the CSV's columns are kept (`COLUMNS`), as camelCase properties.
   Dates become `Date`s and quantities/dollars become numbers. Id-like columns
   (order, PO, item, trip, delivery) stay text: they have letters and leading
   zeros.

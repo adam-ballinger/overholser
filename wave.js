@@ -25,7 +25,7 @@ const COLUMNS = [
   'Sales Channel', 'Customer', 'Business', 'Ship To', 'Order Date', 'Promise Date',
   'Ship Date', 'Ship Date Category', 'Shipping Method', 'Shipping Category',
   'Order Number', 'PO Number', 'On Hold', 'Line Status', 'Item No.', 'Description',
-  'Trip', 'Delivery', 'Ship and Cancel', 'Piece Qty', 'Cases', 'Dollars',
+  'Trip', 'Delivery', 'LPN', 'Ship and Cancel', 'Piece Qty', 'Cases', 'Dollars',
   'Make or Buy', 'Distribution Onhand', 'Open Orders',
 ];
 
@@ -167,6 +167,16 @@ const rowItems = lines => [...Map.groupBy(lines, l => l.itemNo).values()].map(ls
   onhand: ls[0].distributionOnhand,
 })).sort((a, b) => b.dollars - a.dollars);
 
+// A row's LPNs (the pallets its picked lines are on), one per LPN, grouped by order: the inspect tab's LPNs
+// table. The export gives a line's LPN as it has it: a line on two pallets is "343649, 8147964", and that is
+// its own LPN here, since the export doesn't say how the line's pieces split between them.
+const rowLpns = lines => [...Map.groupBy(lines.filter(l => l.lpn), l => l.lpn).values()].map(ls => ({
+  ...summarize(ls),
+  lpn: ls[0].lpn,
+  orderNumbers: [...new Set(ls.map(l => l.orderNumber))],
+  items: new Set(ls.map(l => l.itemNo)).size,
+})).sort((a, b) => a.orderNumbers[0].localeCompare(b.orderNumbers[0]) || a.lpn.localeCompare(b.lpn));
+
 // Takes the CSV text and returns the report rows, all grouping and computing done once, so the page only filters,
 // sorts and formats. A row is the lines on one trip, or one order's lines not on a trip: an order split across two
 // trips is on both, each with only its own lines. Each line is the COLUMNS above as camelCase properties, plus
@@ -181,6 +191,7 @@ const makeRow = ls => {
     orders,
     orderNumbers: orders.map(o => o.orderNumber),
     items,
+    lpns: rowLpns(ls),
     itemNos: items.map(i => i.itemNo),
     shipTos: shipTos(ls),
     shippingMethods: shipMethods(ls),
@@ -280,6 +291,15 @@ const TRIP_ITEM_COLUMNS = [
   { heading: 'Pieces', width: 7, right: true, value: i => i.pieces.toLocaleString() },
   { heading: 'Onhand', width: 8, right: true, value: i => i.onhand.toLocaleString() },
   ALLOC_COLUMN,
+  ...TOTAL_COLUMNS,
+  STATUSES_COLUMN,
+];
+
+// Order, not Orders: phones hide an Orders column, and an LPN is on one order anyway.
+const TRIP_LPN_COLUMNS = [
+  { heading: 'LPN', width: 17, value: p => p.lpn },
+  { heading: 'Order', width: 9, id: true, find: p => p.orderNumbers, value: p => p.orderNumbers.join(' ') },
+  { heading: 'Items', width: 5, right: true, value: p => p.items },
   ...TOTAL_COLUMNS,
   STATUSES_COLUMN,
 ];
