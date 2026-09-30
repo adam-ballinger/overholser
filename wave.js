@@ -344,6 +344,13 @@ const ordersTotals = rows =>
   `${rows.length.toLocaleString()} rows: ${new Set(rows.flatMap(r => r.orderNumbers)).size.toLocaleString()} orders, ` +
   `${rows.reduce((t, r) => t + r.lines.length, 0).toLocaleString()} lines, ${total(rows, 'cases').toLocaleString()} cases, ${money(total(rows, 'dollars'))}`;
 
+// What the rows' late lines come to, line by line: a trip with one late line brings the rest of its lines along,
+// and they aren't late. An order is late if any of its lines is. "1,023 orders, 3,194 lines, $231,264.97".
+function lateWorth(rows) {
+  const ls = rows.flatMap(r => r.lines).filter(late);
+  return `${count(new Set(ls.map(l => l.orderNumber)).size, 'order')}, ${count(ls.length, 'line')}, ${money(total(ls, 'dollars'))}`;
+}
+
 // A row's ship tos, each named once, the way its order numbers are: a count would lose them.
 const shipToList = r => [...new Set(r.lines.map(l => l.shipTo).filter(Boolean))].join(', ');
 

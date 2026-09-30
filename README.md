@@ -50,7 +50,10 @@ name, since every tab reads the same export; ctrl+o works on any tab.
   numbers about them on top. A divider row starts each ship date group
   (`dateGroup`: late, today, tomorrow, future, by the Ship Date Category of the
   row's earliest ship date; the categories follow date order, so each group is
-  one run of rows), with the group's row count and dollars.
+  one run of rows), with the group's row count and dollars. A row is late by
+  its earliest line, and the rest of its trip rides along, so the late divider
+  and the **Late lines** number on top also count just the lines late
+  themselves (`lateWorth`): orders, lines, dollars.
   **Drawing happens in two goes** (`drawRows`): the first 150 rows now, the
   rest on a timer once those are up, since building a row's HTML costs far more
   than putting it on the page (1,500 rows: ~25ms for the first 150, a few

@@ -347,7 +347,7 @@ const lineWorth = (rs, allocation) => {
 };
 // [label, value]; the allocation ones say what they are in the value, so they have no label.
 const STATS = [
-  ['Late', rs => worth(rs.filter(r => r.late))],
+  ['Late lines', lateWorth],
   ['', rs => lineWorth(rs, 'short')],
   ['', rs => lineWorth(rs, 'alloc')],
   ['Holds', rs => worth(rs.filter(r => r.status === 'Holds'))],
@@ -442,7 +442,9 @@ function tableRows(columns, rs, plus, from = 0) {
   return rs.map((r, i) => {
     const group = dateGroup(r);
     const opens = from + i === 0 || group !== dateGroup(rows[from + i - 1]);
-    return (opens ? `<tr><td class="group ${group}" colspan="${columns.length + (plus ? 1 : 0)}">${groupTitle(group, worth(groups.get(group)))}</td></tr>` : '')
+    // A late row's other lines ride along on its trip, so the late group also says what is late itself.
+    const text = worth(groups.get(group)) + (group === 'late' ? `, late lines ${lateWorth(groups.get(group))}` : '');
+    return (opens ? `<tr><td class="group ${group}" colspan="${columns.length + (plus ? 1 : 0)}">${groupTitle(group, text)}</td></tr>` : '')
       + bodyRow(columns, r, addSpec(r), plus);
   }).join('');
 }
