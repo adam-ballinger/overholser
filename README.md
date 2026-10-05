@@ -125,8 +125,9 @@ name, since every tab reads the same export; ctrl+o works on any tab.
   export doesn't say how it splits. The export's `LPN` column is required, so
   an export from before it came in won't load. A new
   export redraws it. Table titles sit above the tables, not in a row: a fixed
-  layout table takes its column widths from its first row. Phones drop PO,
-  Delivery, Customer, Hold, Pieces and Onhand.
+  layout table takes its column widths from its first row. The orders table
+  shows each order's Order Date and Promise Date (its earliest line's). Phones drop PO,
+  Delivery, Customer, the two dates, Hold, Pieces and Onhand.
 - **build** is a list of trips and orders to paste into the wave sheet in one
   go. **Clicking a row** picks it (`tr.on`, a shade darker with a mark down its
   left edge) and clicking it again lets it go: a toggle, so no modifier to hold

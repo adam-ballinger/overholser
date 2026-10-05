@@ -152,6 +152,8 @@ const rowOrders = lines => [...Map.groupBy(lines, l => l.orderNumber).values()].
   poNumber: ls[0].poNumber,
   customer: ls[0].customer,
   shipTo: ls[0].shipTo,
+  orderDate: earliest(ls, 'orderDate'),
+  promiseDate: earliest(ls, 'promiseDate'),
   deliveries: variations(ls.map(l => l.delivery), 'deliveries'),
   onHold: ls.some(l => l.onHold === 'OnHold'),
 })).sort(soonestFirst);
@@ -278,6 +280,8 @@ const TRIP_ORDER_COLUMNS = [
   { heading: 'Delivery', width: 11, value: o => o.deliveries },
   { heading: 'Customer', width: 24, value: o => o.customer },
   { heading: 'Ship To', width: 40, value: o => o.shipTo },
+  { heading: 'Order Date', width: 10, value: o => mdy(o.orderDate) },
+  { heading: 'Promise Date', width: 12, value: o => mdy(o.promiseDate) },
   SHIP_DATE_COLUMN,
   { heading: 'Hold', width: 4, value: o => o.onHold ? 'yes' : '', color: o => o.onHold && 'warning' },
   ALLOC_COLUMN,
